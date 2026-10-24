@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#090d16" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Fitness Interval Timer (60s Split)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&family=JetBrains+Mono:wght@700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body data-phase="idle">
+
+  <main class="app-shell">
+    <!-- 1. TOP BAR -->
+    <header class="top-bar">
+      <div class="brand">
+        <span class="brand-dot" id="wakeLockIndicator" title="Wake Lock Status"></span>
+        <span>60S SPLIT TIMER</span>
+      </div>
+      <div class="top-Controls">
+        <button type="button" class="sound-pill" id="beepGainBtn" title="Cycle Beep Loudness">
+          <span>🔊 Beep:</span>
+          <span class="gain-val" id="beepGainLabel">MAX</span>
+        </button>
+        <button type="button" class="sound-pill" id="duckToggleBtn" title="Auto-lower music volume during beeps">
+          <span>🔉 Duck:</span>
+          <span class="gain-val" id="duckToggleLabel">ON</span>
+        </button>
+        <button type="button" class="sound-pill" id="testBeepBtn" aria-label="Test Interval Beep Sound">
+          <span>🔔 Test</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- 2. HERO RING COUNTDOWN -->
+    <section class="timer-stage" aria-live="polite">
+      <div class="ring-container" id="ringContainer">
+        <svg class="ring-svg" viewBox="0 0 220 220">
+          <circle class="ring-track" cx="110" cy="110" r="98"></circle>
+          <circle class="ring-progress" id="ringProgress" cx="110" cy="110" r="98"></circle>
+        </svg>
+        <div class="timer-readout">
+          <span class="phase-badge" id="phaseBadge">READY • SECTION A</span>
+          <div class="digits-main" id="sectionTimeDisplay">40</div>
+          <div class="cycle-sub">
+            <span>60s Loop: <strong id="totalCycleDisplay">60s</strong></span>
+            <span>•</span>
+            <span>Round <strong id="roundCountDisplay">1</strong></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. 1-MINUTE SPLIT CONFIGURATOR -->
+    <section class="split-card" id="splitCard" aria-label="1 Minute Section Split Configuration">
+      <div class="split-header">
+        <div class="split-pill sec-a">
+          <span class="label">Section A (Work)</span>
+          <span class="val" id="secALabel">40s</span>
+        </div>
+        <div class="split-pill sec-b">
+          <span class="label">Section B (Rest)</span>
+          <span class="val" id="secBLabel">20s</span>
+        </div>
+      </div>
+
+      <div class="slider-row">
+        <button type="button" class="step-btn" id="stepMinusBtn" aria-label="Decrease Section A by 5 seconds">-5</button>
+        <div class="range-wrap">
+          <input type="range" id="splitSlider" min="5" max="55" step="1" value="40" aria-label="Section A duration in seconds" />
+        </div>
+        <button type="button" class="step-btn" id="stepPlusBtn" aria-label="Increase Section A by 5 seconds">+5</button>
+      </div>
+
+      <div class="presets-row">
+        <button type="button" class="preset-chip" data-split="45">45s / 15s</button>
+        <button type="button" class="preset-chip active" data-split="40">40s / 20s</button>
+        <button type="button" class="preset-chip" data-split="30">30s / 30s</button>
+        <button type="button" class="preset-chip" data-split="50">50s / 10s</button>
+      </div>
+    </section>
+
+    <!-- 4. PRIMARY TIMER CONTROLS -->
+    <section class="controls-row">
+      <button type="button" class="btn-main start" id="startStopBtn">
+        <span id="startStopIcon">▶</span>
+        <span id="startStopText">Start Timer</span>
+      </button>
+      <button type="button" class="btn-reset" id="resetBtn" aria-label="Reset Timer" title="Reset Timer">
+        ↺
+      </button>
+    </section>
+
+    <!-- 5. SERVER MP3 MUSIC DECK -->
+    <section class="music-card" aria-label="Workout and Cool Down Music Player">
+      <div class="music-btns-grid">
+        <button type="button" class="music-btn workout" id="workoutMusicBtn">
+          <div class="music-btn-top">
+            <span class="music-icon">⚡</span>
+            <span class="eq-bars" aria-hidden="true">
+              <span class="eq-bar"></span><span class="eq-bar"></span><span class="eq-bar"></span>
+            </span>
+          </div>
+          <div>
+            <div class="music-title">Workout Music</div>
+            <div class="music-sub" id="workoutStatusText">Tap to play MP3s</div>
+          </div>
+        </button>
+
+        <button type="button" class="music-btn cooldown" id="cooldownMusicBtn">
+          <div class="music-btn-top">
+            <span class="music-icon">🌿</span>
+            <span class="eq-bars" aria-hidden="true">
+              <span class="eq-bar"></span><span class="eq-bar"></span><span class="eq-bar"></span>
+            </span>
+          </div>
+          <div>
+            <div class="music-title">Cool Down Music</div>
+            <div class="music-sub" id="cooldownStatusText">Tap to play Relax MP3s</div>
+          </div>
+        </button>
+      </div>
+
+      <div class="now-playing-bar">
+        <div class="track-info">
+          <span class="track-dot" id="trackDot"></span>
+          <span class="track-name" id="nowPlayingText">Music Stopped • Select a playlist above</span>
+        </div>
+        <div class="music-Quick-actions">
+          <div class="vol-control" title="Background Music Volume">
+            <span>🎵 Vol</span>
+            <input type="range" class="vol-slider" id="musicVolSlider" min="10" max="100" value="75" aria-label="Music Volume" />
+          </div>
+          <button type="button" class="next-track-btn" id="nextTrackBtn" disabled>Next ⏭</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Hidden HTML5 Audio Element for Server MP3 Streaming -->
+  <audio id="bgMusicPlayer" preload="auto" playsinline></audio>
+
+  <script src="app.js"></script>
+</body>
+</html>
