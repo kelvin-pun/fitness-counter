@@ -53,9 +53,9 @@
           <span class="phase-badge" id="phaseBadge">READY • WORK</span>
           <div class="digits-main" id="timeDisplay">45</div>
           <div class="cycle-sub" id="cycleSubDisplay">
-            <span id="cycleSubLeft">Loop: <strong>60s</strong></span>
+            <span id="cycleSubLeft">Loop <strong>1/2</strong></span>
             <span>•</span>
-            <span id="cycleSubRight">Round <strong id="roundCountDisplay">1/4</strong></span>
+            <span id="cycleSubRight">Round <strong id="roundCountDisplay">1/5</strong></span>
           </div>
         </div>
       </div>
@@ -92,21 +92,44 @@
         <button type="button" class="preset-chip" data-split="50">50s / 10s</button>
       </div>
 
-      <!-- Loops & Sets Selector: 1, 2, 3, 4, 5 x 4 Rounds -->
-      <div class="loops-block-config">
-        <div class="config-row-title">
-          <span>🔁 Workout Sets & Breaks (1m break between loops)</span>
+      <!-- Loop & Round Selectors (Default: 2 Loops x 5 Rounds) -->
+      <div class="matrix-config-block">
+        <!-- Loops Row: 1 - 5 + Continuous -->
+        <div class="matrix-row">
+          <div class="matrix-label">
+            <span>🔁 Loops:</span>
+            <strong id="loopsValueDisplay">2</strong>
+          </div>
+          <div class="matrix-chips" id="loopChipsContainer">
+            <button type="button" class="matrix-chip" data-loop="1">1</button>
+            <button type="button" class="matrix-chip active" data-loop="2">2</button>
+            <button type="button" class="matrix-chip" data-loop="3">3</button>
+            <button type="button" class="matrix-chip" data-loop="4">4</button>
+            <button type="button" class="matrix-chip" data-loop="5">5</button>
+            <button type="button" class="matrix-chip" data-loop="0">∞</button>
+          </div>
         </div>
-        <div class="loops-chips-row" id="loopsChipsRow">
-          <button type="button" class="loop-chip" data-loops="1">1 × 4 rnds</button>
-          <button type="button" class="loop-chip" data-loops="2">2 × 4 rnds</button>
-          <button type="button" class="loop-chip" data-loops="3">3 × 4 rnds</button>
-          <button type="button" class="loop-chip" data-loops="4">4 × 4 rnds</button>
-          <button type="button" class="loop-chip" data-loops="5">5 × 4 rnds</button>
-          <button type="button" class="loop-chip active" data-loops="0">Continuous</button>
+
+        <!-- Rounds Per Loop Row: 1 - 8 -->
+        <div class="matrix-row">
+          <div class="matrix-label">
+            <span>⏱️ Rounds:</span>
+            <strong id="roundsValueDisplay">5</strong>
+          </div>
+          <div class="matrix-chips" id="roundChipsContainer">
+            <button type="button" class="matrix-chip" data-round="1">1</button>
+            <button type="button" class="matrix-chip" data-round="2">2</button>
+            <button type="button" class="matrix-chip" data-round="3">3</button>
+            <button type="button" class="matrix-chip" data-round="4">4</button>
+            <button type="button" class="matrix-chip active" data-round="5">5</button>
+            <button type="button" class="matrix-chip" data-round="6">6</button>
+            <button type="button" class="matrix-chip" data-round="7">7</button>
+            <button type="button" class="matrix-chip" data-round="8">8</button>
+          </div>
         </div>
+
         <div class="rest-summary-text" id="loopSummaryText">
-          Continuous: 4 rounds of 45s on / 15s off with 1m rest between loops
+          2 loops × 5 rounds (10 rounds total) with 1m rest between loops
         </div>
       </div>
     </section>

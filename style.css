@@ -434,37 +434,55 @@ input[type="range"]::-moz-range-thumb {
   color: var(--text-primary);
 }
 
-/* Loops & Sets Configuration (1,2,3,4,5 x 4 rounds) */
-.loops-block-config {
+/* Loop & Round Matrix Configuration */
+.matrix-config-block {
   margin-top: 10px;
   padding-top: 9px;
   border-top: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.config-row-title {
+.matrix-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.matrix-label {
   font-size: 0.75rem;
   font-weight: 700;
   color: var(--text-secondary);
-  margin-bottom: 7px;
   display: flex;
   align-items: center;
   gap: 5px;
+  min-width: 82px;
 }
 
-.loops-chips-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
-  margin-bottom: 6px;
+.matrix-label strong {
+  color: var(--rest-primary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
 }
 
-.loop-chip {
-  padding: 6px 4px;
+.matrix-chips {
+  display: flex;
+  gap: 5px;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.matrix-chip {
+  flex: 1;
+  max-width: 44px;
+  padding: 6px 0;
   border-radius: 8px;
   border: 1px solid var(--border-subtle);
   background: var(--bg-card-elevated);
   color: var(--text-secondary);
-  font-size: 0.72rem;
+  font-size: 0.76rem;
   font-weight: 700;
   font-family: 'JetBrains Mono', monospace;
   cursor: pointer;
@@ -472,22 +490,22 @@ input[type="range"]::-moz-range-thumb {
   transition: all 0.15s ease;
 }
 
-.loop-chip:active {
-  transform: scale(0.96);
+.matrix-chip:active {
+  transform: scale(0.95);
 }
 
-.loop-chip.active {
-  background: rgba(139, 92, 246, 0.22);
+.matrix-chip.active {
+  background: rgba(139, 92, 246, 0.25);
   border-color: var(--rest-primary);
   color: var(--text-primary);
-  box-shadow: 0 0 10px rgba(139, 92, 246, 0.2);
+  box-shadow: 0 0 10px rgba(139, 92, 246, 0.25);
 }
 
 .rest-summary-text {
   font-size: 0.72rem;
   color: var(--rest-primary);
   font-weight: 700;
-  margin-top: 4px;
+  margin-top: 2px;
   line-height: 1.35;
 }
 

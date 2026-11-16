@@ -2,9 +2,11 @@
  * ============================================================================
  * FITNESS COUNTER & ENDURANCE TIMER
  * Supports:
- * 1. 1-Minute Splits (Work / Off) with 1, 2, 3, 4, 5 x 4 Rounds & 1m Break
- * 2. Long Section Countdown (1 to 15 min, 8-min default)
- * 3. High-Output Synthesizer Beeps & Fanfare (MAX / HIGH / MED)
+ * 1. 1-Minute Splits (Work / Off) with Customizable Loops (1-5, Continuous)
+ *    and Customizable Rounds per Loop (1-8), Default: 2 Loops x 5 Rounds
+ * 2. 1-Minute Rest Break between Loops
+ * 3. Long Section Countdown (1 to 15 min, 8-min default)
+ * 4. High-Output Synthesizer Beeps & Fanfare (MAX / HIGH / MED)
  * ============================================================================
  */
 
@@ -182,20 +184,20 @@ document.addEventListener('visibilitychange', () => {
 const TOTAL_CYCLE_SECONDS = 60;
 const PREP_DURATION_SECONDS = 3;
 const RING_CIRCUMFERENCE = 2 * Math.PI * 98;
-const ROUNDS_PER_LOOP = 4;
 const BREAK_BETWEEN_LOOPS_SECONDS = 60; // 1 minute break between loops
 
 const timerState = {
   mode: 'intervals', // 'intervals' | 'longSection'
   isRunning: false,
 
-  // Intervals settings
+  // Intervals settings (Default: 2 Loops x 5 Rounds)
   sectionASeconds: 45,
   sectionBSeconds: 15,
-  targetLoops: 0, // 0 = continuous, 1..5 = fixed number of 4-round loops
-  currentLoop: 1, // 1..targetLoops
-  currentRoundInLoop: 1, // 1..4
-  currentPhase: 'A', // 'PREP' | 'A' | 'B' | 'REST'
+  targetLoops: 2,           // 1..5, or 0 = continuous
+  roundsPerLoop: 5,         // 1..8
+  currentLoop: 1,           // 1..targetLoops
+  currentRoundInLoop: 1,    // 1..roundsPerLoop
+  currentPhase: 'A',        // 'PREP' | 'A' | 'B' | 'REST'
   isPrepPhase: false,
   prepElapsedMs: 0,
   elapsedInPhaseMs: 0,
@@ -233,7 +235,12 @@ const secBLabel = document.getElementById('secBLabel');
 const stepMinusBtn = document.getElementById('stepMinusBtn');
 const stepPlusBtn = document.getElementById('stepPlusBtn');
 const presetChips = document.querySelectorAll('.preset-chip[data-split]');
-const loopChips = document.querySelectorAll('.loop-chip');
+
+// Loops and Rounds selectors
+const loopsValueDisplay = document.getElementById('loopsValueDisplay');
+const roundsValueDisplay = document.getElementById('roundsValueDisplay');
+const loopChips = document.querySelectorAll('[data-loop]');
+const roundChips = document.querySelectorAll('[data-round]');
 const loopSummaryText = document.getElementById('loopSummaryText');
 
 // Long Section controls
@@ -273,14 +280,19 @@ function triggerCountdownDigitsPulse() {
 
 function updateLoopSummaryText() {
   const loops = timerState.targetLoops;
+  const rnds = timerState.roundsPerLoop;
+
+  loopsValueDisplay.textContent = loops === 0 ? '∞' : String(loops);
+  roundsValueDisplay.textContent = String(rnds);
+
   if (loops === 0) {
-    loopSummaryText.textContent = `Continuous: 4 rounds of ${timerState.sectionASeconds}s on / ${timerState.sectionBSeconds}s off with 1m rest between loops`;
+    loopSummaryText.textContent = `Continuous: ${rnds} rounds of ${timerState.sectionASeconds}s on / ${timerState.sectionBSeconds}s off with 1m rest between loops`;
   } else if (loops === 1) {
-    loopSummaryText.textContent = `1 loop: 4 rounds total (4 minutes workout, finishes after round 4)`;
+    loopSummaryText.textContent = `1 loop × ${rnds} rounds (${rnds} mins total, finishes after round ${rnds})`;
   } else {
-    const totalWorkoutRnds = loops * ROUNDS_PER_LOOP;
+    const totalWorkoutRnds = loops * rnds;
     const totalBreaks = loops - 1;
-    loopSummaryText.textContent = `${loops} loops: ${totalWorkoutRnds} rounds total with ${totalBreaks} × 1m rest breaks between loops`;
+    loopSummaryText.textContent = `${loops} loops × ${rnds} rounds (${totalWorkoutRnds} rounds total) with ${totalBreaks} × 1m rest between loops`;
   }
 }
 
@@ -378,7 +390,7 @@ function renderIntervalsUI() {
     phaseBadge.textContent = 'GET READY • 3-2-1';
     timeDisplay.textContent = String(prepSecondsLeft).padStart(2, '0');
     cycleSubLeft.innerHTML = `<strong>${loopLabel}</strong>`;
-    cycleSubRight.innerHTML = `Round <strong>${timerState.currentRoundInLoop}/${ROUNDS_PER_LOOP}</strong>`;
+    cycleSubRight.innerHTML = `Round <strong>${timerState.currentRoundInLoop}/${timerState.roundsPerLoop}</strong>`;
 
     const dashOffset = RING_CIRCUMFERENCE * (1 - prepProgressFraction);
     ringProgress.style.strokeDashoffset = dashOffset.toFixed(2);
@@ -444,7 +456,7 @@ function renderIntervalsUI() {
 
   timeDisplay.textContent = String(secRemainingCeil).padStart(2, '0');
   cycleSubLeft.innerHTML = `<strong>${loopLabel}</strong>`;
-  cycleSubRight.innerHTML = `Round <strong>${timerState.currentRoundInLoop}/${ROUNDS_PER_LOOP}</strong>`;
+  cycleSubRight.innerHTML = `Round <strong>${timerState.currentRoundInLoop}/${timerState.roundsPerLoop}</strong>`;
 
   // 3-2-1 countdown pip warnings
   if (timerState.isRunning && secRemainingCeil <= 3 && secRemainingCeil >= 1) {
@@ -545,7 +557,7 @@ function handleIntervalsTick(deltaMs) {
     }
   }
 
-  // 2. 1-MINUTE BREAK BETWEEN 4-ROUND LOOPS
+  // 2. 1-MINUTE BREAK BETWEEN LOOPS
   if (timerState.currentPhase === 'REST') {
     timerState.elapsedInPhaseMs += deltaMs;
     const restTotalMs = BREAK_BETWEEN_LOOPS_SECONDS * 1000;
@@ -592,8 +604,8 @@ function handleIntervalsTick(deltaMs) {
       timerState.lastWarnSecondFired = null;
 
       // Finished round in loop
-      if (timerState.currentRoundInLoop < ROUNDS_PER_LOOP) {
-        // Next round within the same 4-round loop
+      if (timerState.currentRoundInLoop < timerState.roundsPerLoop) {
+        // Next round within the same loop
         timerState.currentRoundInLoop += 1;
         timerState.currentPhase = 'A';
         timerState.elapsedInPhaseMs = overflowMs;
@@ -601,7 +613,7 @@ function handleIntervalsTick(deltaMs) {
         beepEngine.playStartBeep();
         triggerVisualFlash();
       } else {
-        // Finished all 4 rounds of this loop!
+        // Finished all rounds of this loop!
         // Check if workout is completely finished (reached targetLoops)
         if (timerState.targetLoops > 0 && timerState.currentLoop >= timerState.targetLoops) {
           pauseTimer();
@@ -741,13 +753,25 @@ presetChips.forEach(chip => {
   chip.addEventListener('click', () => updateSplitConfiguration(chip.dataset.split));
 });
 
-// Loops Chips: 1, 2, 3, 4, 5 x 4 rounds, or Continuous
+// Loops Selector: 1, 2, 3, 4, 5, or Continuous (0)
 loopChips.forEach(chip => {
   chip.addEventListener('click', () => {
     if (timerState.isRunning) return;
     loopChips.forEach(c => c.classList.remove('active'));
     chip.classList.add('active');
-    timerState.targetLoops = parseInt(chip.dataset.loops, 10);
+    timerState.targetLoops = parseInt(chip.dataset.loop, 10);
+    updateLoopSummaryText();
+    renderTimerUI();
+  });
+});
+
+// Rounds Selector: 1, 2, 3, 4, 5, 6, 7, 8
+roundChips.forEach(chip => {
+  chip.addEventListener('click', () => {
+    if (timerState.isRunning) return;
+    roundChips.forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    timerState.roundsPerLoop = parseInt(chip.dataset.round, 10);
     updateLoopSummaryText();
     renderTimerUI();
   });
@@ -786,7 +810,10 @@ testBeepBtn.addEventListener('click', () => {
   triggerVisualFlash();
 });
 
-// Initialize on Load
+// Initialize on Load (Default: 2 Loops x 5 Rounds, 45s/15s split, 8m long)
+timerState.targetLoops = 2;
+timerState.roundsPerLoop = 5;
 updateSplitConfiguration(45);
+updateLoopSummaryText();
 updateLongConfiguration(8);
 setMode('intervals');
