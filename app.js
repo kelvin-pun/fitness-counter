@@ -817,3 +817,10 @@ updateSplitConfiguration(45);
 updateLoopSummaryText();
 updateLongConfiguration(8);
 setMode('intervals');
+
+// Register Service Worker for Offline iPhone & Home Screen Support
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
