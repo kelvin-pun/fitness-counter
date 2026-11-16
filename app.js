@@ -142,7 +142,7 @@ const beepEngine = new BeepAudioEngine();
 
 /**
  * ============================================================================
- * 2. SPEECH SYNTHESIS ENGINE (DRAMATIC HIGH-ENERGY VOICE COACH)
+ * 2. SPEECH SYNTHESIS ENGINE (MALE VOICE • MEASURED SPEED • MINUTES COUNT)
  * ============================================================================
  */
 class VoiceEngine {
@@ -162,8 +162,16 @@ class VoiceEngine {
   initVoices() {
     if (!this.hasSynthesis) return;
     const voices = window.speechSynthesis.getVoices();
-    // Prefer authoritative, clear English voices
-    this.voice = voices.find(v => v.lang.startsWith('en') && (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Daniel') || v.name.includes('Arthur') || v.name.includes('Samantha') || v.name.includes('Alex')))
+
+    // Prioritize natural male English voices
+    const maleNames = [
+      'Daniel', 'Arthur', 'Oliver', 'George', 'Aaron', 'James',
+      'David', 'Mark', 'Guy', 'Tom', 'Ryan', 'Google UK English Male',
+      'Google US English Male', 'Microsoft David', 'Microsoft Mark'
+    ];
+
+    this.voice = voices.find(v => v.lang.startsWith('en') && maleNames.some(name => v.name.includes(name)))
+      || voices.find(v => v.lang.startsWith('en') && (v.name.toLowerCase().includes('male') || !v.name.toLowerCase().includes('female')))
       || voices.find(v => v.lang.startsWith('en'))
       || voices[0] || null;
   }
@@ -174,41 +182,41 @@ class VoiceEngine {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       if (this.voice) utterance.voice = this.voice;
-      utterance.rate = options.rate || 1.08;
-      utterance.pitch = options.pitch || 1.15;
-      utterance.volume = options.volume || 1.0;
+      // Lower, measured speed (0.86) and deep resonant male pitch (0.88)
+      utterance.rate = options.rate !== undefined ? options.rate : 0.86;
+      utterance.pitch = options.pitch !== undefined ? options.pitch : 0.88;
+      utterance.volume = options.volume !== undefined ? options.volume : 1.0;
       window.speechSynthesis.speak(utterance);
     } catch (e) {
       // Ignore if blocked by browser policy
     }
   }
 
-  speakMotivationalMinute(minsRemaining, totalMinutes) {
-    let dramaticLine = '';
+  speakMinuteRemaining(minsRemaining) {
+    const numberWords = {
+      1: 'One',
+      2: 'Two',
+      3: 'Three',
+      4: 'Four,',
+      5: 'Five',
+      6: 'Six',
+      7: 'Seven',
+      8: 'Eight',
+      9: 'Nine',
+      10: 'Ten',
+      11: 'Eleven',
+      12: 'Twelve',
+      13: 'Thirteen',
+      14: 'Fourteen',
+      15: 'Fifteen'
+    };
 
-    if (minsRemaining === 1) {
-      dramaticLine = "FINAL MINUTE! Give it everything you've got! Don't quit now!";
-    } else if (minsRemaining === 2) {
-      dramaticLine = "2 minutes left! Dig deep! Push through the burn!";
-    } else if (minsRemaining === 3) {
-      dramaticLine = "3 minutes remaining! Stay fierce! Strong body, strong mind!";
-    } else if (minsRemaining === 4) {
-      dramaticLine = "4 minutes on the clock! Halfway home, keep that relentless pace!";
-    } else if (minsRemaining === 5) {
-      dramaticLine = "5 minutes remaining! Power through! You own this workout!";
-    } else if (minsRemaining === 6) {
-      dramaticLine = "6 minutes left! Lock in! Eyes on the finish line!";
-    } else if (minsRemaining === 7) {
-      dramaticLine = "7 minutes remaining! Breathe deep, stay explosive, let's go!";
-    } else if (minsRemaining === 8) {
-      dramaticLine = "8 minutes remaining! Settle into your rhythm, keep pushing!";
-    } else if (minsRemaining === Math.floor(totalMinutes / 2)) {
-      dramaticLine = `${minsRemaining} minutes! HALFWAY POINT! Keep this champion energy!`;
-    } else {
-      dramaticLine = `${minsRemaining} minutes remaining! Stay locked in, keep moving!`;
-    }
+    const word = numberWords[minsRemaining] || `${minsRemaining}`;
+    const unit = minsRemaining === 1 ? 'minute' : 'minutes';
+    // "Four, minutes remaining." delivers that distinct, measured "Four~ minutes remaining" intonation
+    const phrase = `${word} ${unit} remaining.`;
 
-    this.speak(dramaticLine, { rate: 1.10, pitch: 1.18 });
+    this.speak(phrase, { rate: 0.84, pitch: 0.88 });
   }
 }
 
@@ -709,7 +717,7 @@ function handleLongSectionTick(deltaMs) {
     const minsRemaining = remainingSeconds / 60;
     if (timerState.lastVoiceMinuteAnnounced !== minsRemaining) {
       timerState.lastVoiceMinuteAnnounced = minsRemaining;
-      voiceEngine.speakMotivationalMinute(minsRemaining, timerState.longMinutes);
+      voiceEngine.speakMinuteRemaining(minsRemaining);
     }
   }
 }
@@ -745,7 +753,7 @@ function startTimer() {
     if (timerState.longElapsedMs === 0) {
       beepEngine.playStartBeep();
       triggerVisualFlash();
-      voiceEngine.speak(`${timerState.longMinutes} minute endurance block! Let's conquer this! Start strong!`, { rate: 1.10, pitch: 1.20 });
+      voiceEngine.speak(`${timerState.longMinutes} minutes remaining.`);
     }
   }
 
@@ -876,7 +884,7 @@ voiceToggleBtn.addEventListener('click', () => {
 testBeepBtn.addEventListener('click', () => {
   beepEngine.playStartBeep();
   triggerVisualFlash();
-  voiceEngine.speakMotivationalMinute(1, timerState.longMinutes);
+  voiceEngine.speakMinuteRemaining(4);
 });
 
 // Initialize on Load

@@ -14,9 +14,10 @@ A mobile-first HTML5 fitness interval timer and endurance countdown built for An
 
 ### 2. Long Section Countdown (1 to 15 Minutes, 8-Min Default)
 - **Default 8-Minute Period:** Defaults to 8 minutes, with quick adjustment from 1 to 15 minutes via slider, `+/-1m` steppers, or chips (`15m`, `10m`, `8m`, `5m`, `3m`, `1m`).
-- **Dramatic High-Energy Voice Coach:**
-  - Speaks powerful, motivational countdown cues at every single minute mark with urgent energy and cadence (e.g., *"FINAL MINUTE! Give it everything you've got! Don't quit now!"*, *"2 minutes left! Dig deep! Push through the burn!"*, *"HALFWAY POINT! Keep this champion energy!"*).
-  - Finishes with 3-2-1 pips and victory celebration audio.
+- **Measured Male Voice Countdown:**
+  - Specifically selects a male English voice (`Google UK/US Male`, `Microsoft David/Mark`, `Daniel`, `Arthur`, `Oliver`).
+  - Uses a slower, measured speaking rate (`rate: 0.84`) and resonant pitch (`pitch: 0.88`).
+  - Removed promotional coaching callouts in favor of clean, professional minute countdowns with natural lingering cadence (e.g., *"Four~ minutes remaining."*).
 
 ### 3. High-Output Synthesizer
 - Dual-oscillator Web Audio API synth with dynamic range compressor maximizer (`MAX`, `HIGH`, `MED`) designed to cut through ambient gym noise.
