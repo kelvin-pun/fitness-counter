@@ -142,7 +142,7 @@ const beepEngine = new BeepAudioEngine();
 
 /**
  * ============================================================================
- * 2. SPEECH SYNTHESIS ENGINE (VOICE NOTICES)
+ * 2. SPEECH SYNTHESIS ENGINE (DRAMATIC HIGH-ENERGY VOICE COACH)
  * ============================================================================
  */
 class VoiceEngine {
@@ -162,25 +162,53 @@ class VoiceEngine {
   initVoices() {
     if (!this.hasSynthesis) return;
     const voices = window.speechSynthesis.getVoices();
-    // Prefer clear English voices
-    this.voice = voices.find(v => v.lang.startsWith('en') && (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Samantha') || v.name.includes('Siri')))
+    // Prefer authoritative, clear English voices
+    this.voice = voices.find(v => v.lang.startsWith('en') && (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Daniel') || v.name.includes('Arthur') || v.name.includes('Samantha') || v.name.includes('Alex')))
       || voices.find(v => v.lang.startsWith('en'))
       || voices[0] || null;
   }
 
-  speak(text) {
+  speak(text, options = {}) {
     if (!this.enabled || !this.hasSynthesis) return;
     try {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       if (this.voice) utterance.voice = this.voice;
-      utterance.rate = 1.05;
-      utterance.pitch = 1.0;
-      utterance.volume = 1.0;
+      utterance.rate = options.rate || 1.08;
+      utterance.pitch = options.pitch || 1.15;
+      utterance.volume = options.volume || 1.0;
       window.speechSynthesis.speak(utterance);
     } catch (e) {
       // Ignore if blocked by browser policy
     }
+  }
+
+  speakMotivationalMinute(minsRemaining, totalMinutes) {
+    let dramaticLine = '';
+
+    if (minsRemaining === 1) {
+      dramaticLine = "FINAL MINUTE! Give it everything you've got! Don't quit now!";
+    } else if (minsRemaining === 2) {
+      dramaticLine = "2 minutes left! Dig deep! Push through the burn!";
+    } else if (minsRemaining === 3) {
+      dramaticLine = "3 minutes remaining! Stay fierce! Strong body, strong mind!";
+    } else if (minsRemaining === 4) {
+      dramaticLine = "4 minutes on the clock! Halfway home, keep that relentless pace!";
+    } else if (minsRemaining === 5) {
+      dramaticLine = "5 minutes remaining! Power through! You own this workout!";
+    } else if (minsRemaining === 6) {
+      dramaticLine = "6 minutes left! Lock in! Eyes on the finish line!";
+    } else if (minsRemaining === 7) {
+      dramaticLine = "7 minutes remaining! Breathe deep, stay explosive, let's go!";
+    } else if (minsRemaining === 8) {
+      dramaticLine = "8 minutes remaining! Settle into your rhythm, keep pushing!";
+    } else if (minsRemaining === Math.floor(totalMinutes / 2)) {
+      dramaticLine = `${minsRemaining} minutes! HALFWAY POINT! Keep this champion energy!`;
+    } else {
+      dramaticLine = `${minsRemaining} minutes remaining! Stay locked in, keep moving!`;
+    }
+
+    this.speak(dramaticLine, { rate: 1.10, pitch: 1.18 });
   }
 }
 
@@ -245,7 +273,7 @@ const timerState = {
   elapsedInPhaseMs: 0,
 
   // Long section settings
-  longMinutes: 10,
+  longMinutes: 8,
   longElapsedMs: 0,
   lastVoiceMinuteAnnounced: null,
 
@@ -676,13 +704,12 @@ function handleLongSectionTick(deltaMs) {
 
   // Check minute voice announcement
   const remainingSeconds = Math.ceil((totalLongMs - timerState.longElapsedMs) / 1000);
-  // Announce exactly when remainingSeconds is a multiple of 60 (e.g., 540s = 9m, 480s = 8m, etc.)
+  // Announce exactly when remainingSeconds is a multiple of 60 (e.g., 420s = 7m, 360s = 6m, etc.)
   if (remainingSeconds > 0 && remainingSeconds % 60 === 0) {
     const minsRemaining = remainingSeconds / 60;
     if (timerState.lastVoiceMinuteAnnounced !== minsRemaining) {
       timerState.lastVoiceMinuteAnnounced = minsRemaining;
-      const msg = minsRemaining === 1 ? '1 minute remaining' : `${minsRemaining} minutes remaining`;
-      voiceEngine.speak(msg);
+      voiceEngine.speakMotivationalMinute(minsRemaining, timerState.longMinutes);
     }
   }
 }
@@ -718,7 +745,7 @@ function startTimer() {
     if (timerState.longElapsedMs === 0) {
       beepEngine.playStartBeep();
       triggerVisualFlash();
-      voiceEngine.speak(`${timerState.longMinutes} minutes countdown started`);
+      voiceEngine.speak(`${timerState.longMinutes} minute endurance block! Let's conquer this! Start strong!`, { rate: 1.10, pitch: 1.20 });
     }
   }
 
@@ -849,11 +876,11 @@ voiceToggleBtn.addEventListener('click', () => {
 testBeepBtn.addEventListener('click', () => {
   beepEngine.playStartBeep();
   triggerVisualFlash();
-  voiceEngine.speak('Test 1 2 3');
+  voiceEngine.speakMotivationalMinute(1, timerState.longMinutes);
 });
 
 // Initialize on Load
 updateSplitConfiguration(45);
 updateRestSummaryText();
-updateLongConfiguration(10);
+updateLongConfiguration(8);
 setMode('intervals');

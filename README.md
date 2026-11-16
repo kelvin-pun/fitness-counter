@@ -12,9 +12,11 @@ A mobile-first HTML5 fitness interval timer and endurance countdown built for An
   - 3-2-1 warning pips before section transitions and rest periods.
   - Distinct harmonic start, transition, and rest period beeps.
 
-### 2. Long Section Countdown (1 to 15 Minutes)
-- **Customizable Duration:** Set a sustained workout or cool-down block from 1 to 15 minutes via slider, `+/-1m` steppers, or quick chips (`15m`, `10m`, `5m`, `3m`, `1m`).
-- **Voice Time Announcements:** Uses the browser SpeechSynthesis API to speak vocal notices at every remaining minute mark (e.g., *"4 minutes remaining"*, *"1 minute remaining"*), followed by 3-2-1 warning pips and finish tones.
+### 2. Long Section Countdown (1 to 15 Minutes, 8-Min Default)
+- **Default 8-Minute Period:** Defaults to 8 minutes, with quick adjustment from 1 to 15 minutes via slider, `+/-1m` steppers, or chips (`15m`, `10m`, `8m`, `5m`, `3m`, `1m`).
+- **Dramatic High-Energy Voice Coach:**
+  - Speaks powerful, motivational countdown cues at every single minute mark with urgent energy and cadence (e.g., *"FINAL MINUTE! Give it everything you've got! Don't quit now!"*, *"2 minutes left! Dig deep! Push through the burn!"*, *"HALFWAY POINT! Keep this champion energy!"*).
+  - Finishes with 3-2-1 pips and victory celebration audio.
 
 ### 3. High-Output Synthesizer
 - Dual-oscillator Web Audio API synth with dynamic range compressor maximizer (`MAX`, `HIGH`, `MED`) designed to cut through ambient gym noise.
