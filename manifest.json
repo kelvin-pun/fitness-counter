@@ -1,6 +1,6 @@
 {
   "name": "Fitness Interval Counter",
-  "short_name": "Intervals",
+  "short_name": "Fitness Counter",
   "description": "Mobile-first interval & endurance fitness timer with synthesizer audio cues.",
   "start_url": "./index.html",
   "display": "standalone",
