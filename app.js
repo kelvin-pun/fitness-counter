@@ -374,6 +374,7 @@ function renderTimerUI() {
 
 function renderIntervalsUI() {
   timeDisplay.classList.remove('long-format');
+  cycleSubDisplay.style.display = 'flex';
 
   const loopLabel = timerState.targetLoops > 0
     ? `Loop ${timerState.currentLoop}/${timerState.targetLoops}`
@@ -476,6 +477,7 @@ function renderIntervalsUI() {
 function renderLongSectionUI() {
   timeDisplay.classList.add('long-format');
   document.body.setAttribute('data-phase', 'longSection');
+  cycleSubDisplay.style.display = 'none';
 
   const totalLongMs = timerState.longMinutes * 60 * 1000;
   const remainingMs = Math.max(0, totalLongMs - timerState.longElapsedMs);
@@ -486,8 +488,6 @@ function renderLongSectionUI() {
 
   phaseBadge.textContent = 'LONG SECTION • ENDURANCE';
   timeDisplay.textContent = `${String(minsLeft).padStart(2, '0')}:${String(secsLeft).padStart(2, '0')}`;
-  cycleSubLeft.innerHTML = `Total: <strong>${timerState.longMinutes}m</strong>`;
-  cycleSubRight.innerHTML = `Remaining: <strong>${minsLeft}m ${secsLeft}s</strong>`;
 
   // Final 3-2-1 pips before long section ends
   if (timerState.isRunning && totalSecondsLeft <= 3 && totalSecondsLeft >= 1) {
