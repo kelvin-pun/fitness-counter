@@ -1,45 +1,16 @@
 /**
  * ============================================================================
- * 1. SERVER MP3 PLAYLIST CONFIGURATION
- * Replace the URLs below with your own server MP3 paths when deploying:
- * e.g., url: 'audio/workout/track1.mp3'
+ * FITNESS COUNTER & ENDURANCE TIMER
+ * Supports:
+ * 1. 1-Minute Splits (Work / Off) with Customizable Rest Periods after N Rounds
+ * 2. Long Section Countdown (1 to 15 min) with Voice Notice Every Minute
+ * 3. High-Output Synthesizer Beeps (MAX / HIGH / MED)
  * ============================================================================
  */
-const PLAYLISTS = {
-  workout: [
-    {
-      title: 'Workout Track 1 - High Energy',
-      url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'
-      // Server path example: 'audio/workout/track1.mp3'
-    },
-    {
-      title: 'Workout Track 2 - Power Tempo',
-      url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3'
-      // Server path example: 'audio/workout/track2.mp3'
-    },
-    {
-      title: 'Workout Track 3 - Cardio Drive',
-      url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3'
-      // Server path example: 'audio/workout/track3.mp3'
-    }
-  ],
-  cooldown: [
-    {
-      title: 'Cool Down 1 - Deep Breath',
-      url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3'
-      // Server path example: 'audio/cooldown/relax1.mp3'
-    },
-    {
-      title: 'Cool Down 2 - Gentle Stretch',
-      url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3'
-      // Server path example: 'audio/cooldown/relax2.mp3'
-    }
-  ]
-};
 
 /**
  * ============================================================================
- * 2. HIGH-OUTPUT WEB AUDIO API SYNTHESIZER (WITH LIMITER & MUSIC DUCKING)
+ * 1. HIGH-OUTPUT WEB AUDIO API SYNTHESIZER
  * ============================================================================
  */
 class BeepAudioEngine {
@@ -54,8 +25,6 @@ class BeepAudioEngine {
       { label: 'MED', value: 0.50 }
     ];
     this.gainIndex = 0;
-    this.duckEnabled = true;
-    this.duckTimeout = null;
   }
 
   unlock() {
@@ -93,21 +62,8 @@ class BeepAudioEngine {
     return mode.label;
   }
 
-  duckBackgroundMusic(durationMs = 450) {
-    if (!this.duckEnabled || !bgMusicPlayer || bgMusicPlayer.paused) return;
-
-    const userVol = parseInt(musicVolSlider.value, 10) / 100;
-    bgMusicPlayer.volume = Math.max(0.08, userVol * 0.18);
-
-    if (this.duckTimeout) clearTimeout(this.duckTimeout);
-    this.duckTimeout = setTimeout(() => {
-      if (bgMusicPlayer && !bgMusicPlayer.paused) {
-        bgMusicPlayer.volume = parseInt(musicVolSlider.value, 10) / 100;
-      }
-    }, durationMs);
-  }
-
   playHarmonicTone(freq, startTime, duration, primaryType = 'square', subType = 'sawtooth') {
+    if (!this.ctx) return;
     const osc1 = this.ctx.createOscillator();
     const osc2 = this.ctx.createOscillator();
     const noteGain = this.ctx.createGain();
@@ -136,37 +92,49 @@ class BeepAudioEngine {
   playCountdownPip() {
     this.unlock();
     if (!this.ctx) return;
-
-    this.duckBackgroundMusic(260);
     const now = this.ctx.currentTime;
     this.playHarmonicTone(1244.5, now, 0.13, 'square', 'triangle');
-
     if (navigator.vibrate) navigator.vibrate(45);
   }
 
   playStartBeep() {
     this.unlock();
     if (!this.ctx) return;
-
-    this.duckBackgroundMusic(700);
     const now = this.ctx.currentTime;
     this.playHarmonicTone(1046.5, now, 0.13, 'square', 'sawtooth');
     this.playHarmonicTone(1046.5, now + 0.16, 0.13, 'square', 'sawtooth');
     this.playHarmonicTone(1567.98, now + 0.32, 0.32, 'square', 'sawtooth');
-
     if (navigator.vibrate) navigator.vibrate([120, 50, 200]);
   }
 
   playTransitionBeep() {
     this.unlock();
     if (!this.ctx) return;
-
-    this.duckBackgroundMusic(600);
     const now = this.ctx.currentTime;
     this.playHarmonicTone(1174.66, now, 0.16, 'square', 'sawtooth');
     this.playHarmonicTone(783.99, now + 0.20, 0.30, 'square', 'sawtooth');
-
     if (navigator.vibrate) navigator.vibrate([90, 50, 140]);
+  }
+
+  playRestBeep() {
+    this.unlock();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    this.playHarmonicTone(880.0, now, 0.18, 'triangle', 'sine');
+    this.playHarmonicTone(659.25, now + 0.20, 0.25, 'triangle', 'sine');
+    this.playHarmonicTone(523.25, now + 0.42, 0.40, 'triangle', 'sine');
+    if (navigator.vibrate) navigator.vibrate([150, 60, 250]);
+  }
+
+  playFinishBeep() {
+    this.unlock();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    this.playHarmonicTone(523.25, now, 0.15, 'square', 'sawtooth');
+    this.playHarmonicTone(659.25, now + 0.16, 0.15, 'square', 'sawtooth');
+    this.playHarmonicTone(783.99, now + 0.32, 0.15, 'square', 'sawtooth');
+    this.playHarmonicTone(1046.50, now + 0.48, 0.45, 'square', 'sawtooth');
+    if (navigator.vibrate) navigator.vibrate([200, 80, 400]);
   }
 }
 
@@ -174,7 +142,53 @@ const beepEngine = new BeepAudioEngine();
 
 /**
  * ============================================================================
- * 3. SCREEN WAKE LOCK (KEEPS PHONE AWAKE DURING WORKOUT)
+ * 2. SPEECH SYNTHESIS ENGINE (VOICE NOTICES)
+ * ============================================================================
+ */
+class VoiceEngine {
+  constructor() {
+    this.enabled = true;
+    this.hasSynthesis = 'speechSynthesis' in window;
+    this.voice = null;
+
+    if (this.hasSynthesis) {
+      this.initVoices();
+      if (window.speechSynthesis.onvoiceschanged !== undefined) {
+        window.speechSynthesis.onvoiceschanged = () => this.initVoices();
+      }
+    }
+  }
+
+  initVoices() {
+    if (!this.hasSynthesis) return;
+    const voices = window.speechSynthesis.getVoices();
+    // Prefer clear English voices
+    this.voice = voices.find(v => v.lang.startsWith('en') && (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Samantha') || v.name.includes('Siri')))
+      || voices.find(v => v.lang.startsWith('en'))
+      || voices[0] || null;
+  }
+
+  speak(text) {
+    if (!this.enabled || !this.hasSynthesis) return;
+    try {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      if (this.voice) utterance.voice = this.voice;
+      utterance.rate = 1.05;
+      utterance.pitch = 1.0;
+      utterance.volume = 1.0;
+      window.speechSynthesis.speak(utterance);
+    } catch (e) {
+      // Ignore if blocked by browser policy
+    }
+  }
+}
+
+const voiceEngine = new VoiceEngine();
+
+/**
+ * ============================================================================
+ * 3. SCREEN WAKE LOCK
  * ============================================================================
  */
 let wakeLockSentinel = null;
@@ -186,7 +200,7 @@ async function requestWakeLock() {
       wakeLockSentinel = await navigator.wakeLock.request('screen');
       wakeLockIndicator.style.background = '#10b981';
     } catch (err) {
-      // Fallback if battery saver blocks wakeLock
+      // Fallback if battery saver blocks
     }
   }
 }
@@ -195,7 +209,8 @@ function releaseWakeLock() {
   if (wakeLockSentinel) {
     wakeLockSentinel.release().then(() => {
       wakeLockSentinel = null;
-    });
+      wakeLockIndicator.style.background = 'var(--text-muted)';
+    }).catch(() => {});
   }
 }
 
@@ -207,7 +222,7 @@ document.addEventListener('visibilitychange', () => {
 
 /**
  * ============================================================================
- * 4. 60-SECOND INTERVAL TIMER ENGINE (WITH INITIAL 3-2-1 PREP & WARNING CUES)
+ * 4. TIMER STATE & DOM ELEMENTS
  * ============================================================================
  */
 const TOTAL_CYCLE_SECONDS = 60;
@@ -215,44 +230,108 @@ const PREP_DURATION_SECONDS = 3;
 const RING_CIRCUMFERENCE = 2 * Math.PI * 98;
 
 const timerState = {
+  mode: 'intervals', // 'intervals' | 'longSection'
   isRunning: false,
-  sectionASeconds: 40,
-  sectionBSeconds: 20,
+
+  // Intervals settings
+  sectionASeconds: 45,
+  sectionBSeconds: 15,
+  restEveryRounds: 4,      // 0 = disabled
+  restDurationSeconds: 60, // 60s = 1 min
+  currentRound: 1,
+  currentPhase: 'A',       // 'PREP' | 'A' | 'B' | 'REST'
   isPrepPhase: false,
   prepElapsedMs: 0,
-  elapsedInCycleMs: 0,
+  elapsedInPhaseMs: 0,
+
+  // Long section settings
+  longMinutes: 10,
+  longElapsedMs: 0,
+  lastVoiceMinuteAnnounced: null,
+
+  // RAF engine
   lastFrameTime: 0,
-  currentPhase: 'A',
-  roundCount: 1,
   rafId: null,
   lastWarnSecondFired: null
 };
 
+// Mode switch tabs
+const tabIntervals = document.getElementById('tabIntervals');
+const tabLongSection = document.getElementById('tabLongSection');
+const intervalsPanel = document.getElementById('intervalsPanel');
+const longSectionPanel = document.getElementById('longSectionPanel');
+
+// Ring & readout
+const ringContainer = document.getElementById('ringContainer');
+const ringProgress = document.getElementById('ringProgress');
+const phaseBadge = document.getElementById('phaseBadge');
+const timeDisplay = document.getElementById('timeDisplay');
+const cycleSubDisplay = document.getElementById('cycleSubDisplay');
+const cycleSubLeft = document.getElementById('cycleSubLeft');
+const cycleSubRight = document.getElementById('cycleSubRight');
+const roundCountDisplay = document.getElementById('roundCountDisplay');
+
+// Intervals controls
 const splitSlider = document.getElementById('splitSlider');
 const secALabel = document.getElementById('secALabel');
 const secBLabel = document.getElementById('secBLabel');
 const stepMinusBtn = document.getElementById('stepMinusBtn');
 const stepPlusBtn = document.getElementById('stepPlusBtn');
-const presetChips = document.querySelectorAll('.preset-chip');
-const splitCard = document.getElementById('splitCard');
+const presetChips = document.querySelectorAll('.preset-chip[data-split]');
+const restEveryRoundsSelect = document.getElementById('restEveryRounds');
+const restDurationSelect = document.getElementById('restDuration');
+const restSummaryText = document.getElementById('restSummaryText');
 
-const phaseBadge = document.getElementById('phaseBadge');
-const sectionTimeDisplay = document.getElementById('sectionTimeDisplay');
-const totalCycleDisplay = document.getElementById('totalCycleDisplay');
-const roundCountDisplay = document.getElementById('roundCountDisplay');
-const ringProgress = document.getElementById('ringProgress');
-const ringContainer = document.getElementById('ringContainer');
+// Long Section controls
+const longSlider = document.getElementById('longSlider');
+const longDurationLabel = document.getElementById('longDurationLabel');
+const longMinusBtn = document.getElementById('longMinusBtn');
+const longPlusBtn = document.getElementById('longPlusBtn');
+const longChips = document.querySelectorAll('.long-chip');
 
+// Main buttons
 const startStopBtn = document.getElementById('startStopBtn');
 const startStopIcon = document.getElementById('startStopIcon');
 const startStopText = document.getElementById('startStopText');
 const resetBtn = document.getElementById('resetBtn');
 
+// Top audio buttons
 const testBeepBtn = document.getElementById('testBeepBtn');
 const beepGainBtn = document.getElementById('beepGainBtn');
 const beepGainLabel = document.getElementById('beepGainLabel');
-const duckToggleBtn = document.getElementById('duckToggleBtn');
-const duckToggleLabel = document.getElementById('duckToggleLabel');
+const voiceToggleBtn = document.getElementById('voiceToggleBtn');
+const voiceToggleLabel = document.getElementById('voiceToggleLabel');
+
+/**
+ * ============================================================================
+ * 5. UI VISUAL HELPERS & SOUNDS
+ * ============================================================================
+ */
+function triggerVisualFlash() {
+  ringContainer.classList.remove('flash-transition');
+  void ringContainer.offsetWidth;
+  ringContainer.classList.add('flash-transition');
+}
+
+function triggerCountdownDigitsPulse() {
+  timeDisplay.classList.remove('countdown-warn');
+  void timeDisplay.offsetWidth;
+  timeDisplay.classList.add('countdown-warn');
+}
+
+function updateRestSummaryText() {
+  const rounds = parseInt(restEveryRoundsSelect.value, 10);
+  const durSecs = parseInt(restDurationSelect.value, 10);
+  const durText = durSecs >= 60 ? `${durSecs / 60}m` : `${durSecs}s`;
+
+  if (rounds === 0) {
+    restSummaryText.textContent = 'Continuous rounds (no rest period)';
+    restSummaryText.style.color = 'var(--text-muted)';
+  } else {
+    restSummaryText.textContent = `Rest ${durText} after every ${rounds} rounds`;
+    restSummaryText.style.color = 'var(--rest-primary)';
+  }
+}
 
 function updateSplitConfiguration(newSecA) {
   const clampedA = Math.min(55, Math.max(5, parseInt(newSecA, 10)));
@@ -272,34 +351,66 @@ function updateSplitConfiguration(newSecA) {
     chip.classList.toggle('active', parseInt(chip.dataset.split, 10) === clampedA);
   });
 
-  if (!timerState.isRunning && timerState.elapsedInCycleMs === 0 && !timerState.isPrepPhase) {
-    sectionTimeDisplay.textContent = String(clampedA).padStart(2, '0');
-    totalCycleDisplay.textContent = '60s';
+  if (!timerState.isRunning && timerState.mode === 'intervals') {
+    timeDisplay.textContent = String(clampedA).padStart(2, '0');
     ringProgress.style.strokeDashoffset = '0';
   }
 }
 
-splitSlider.addEventListener('input', (e) => updateSplitConfiguration(e.target.value));
-stepMinusBtn.addEventListener('click', () => updateSplitConfiguration(timerState.sectionASeconds - 5));
-stepPlusBtn.addEventListener('click', () => updateSplitConfiguration(timerState.sectionASeconds + 5));
+function updateLongConfiguration(newMins) {
+  const clampedMins = Math.min(15, Math.max(1, parseInt(newMins, 10)));
+  timerState.longMinutes = clampedMins;
 
-presetChips.forEach(chip => {
-  chip.addEventListener('click', () => updateSplitConfiguration(chip.dataset.split));
-});
+  longSlider.value = clampedMins;
+  const pct = ((clampedMins - 1) / 14) * 100;
+  longSlider.style.setProperty('--long-pct', `${pct}%`);
 
-function triggerVisualFlash() {
-  ringContainer.classList.remove('flash-transition');
-  void ringContainer.offsetWidth;
-  ringContainer.classList.add('flash-transition');
+  longDurationLabel.textContent = `${clampedMins}m 00s`;
+
+  longChips.forEach(chip => {
+    chip.classList.toggle('active', parseInt(chip.dataset.mins, 10) === clampedMins);
+  });
+
+  if (!timerState.isRunning && timerState.mode === 'longSection') {
+    const minsStr = String(clampedMins).padStart(2, '0');
+    timeDisplay.textContent = `${minsStr}:00`;
+    timeDisplay.classList.add('long-format');
+    ringProgress.style.strokeDashoffset = '0';
+  }
 }
 
-function triggerCountdownDigitsPulse() {
-  sectionTimeDisplay.classList.remove('countdown-warn');
-  void sectionTimeDisplay.offsetWidth;
-  sectionTimeDisplay.classList.add('countdown-warn');
+function setMode(mode) {
+  if (timerState.isRunning) return; // locked during active timer
+
+  timerState.mode = mode;
+  tabIntervals.classList.toggle('active', mode === 'intervals');
+  tabLongSection.classList.toggle('active', mode === 'longSection');
+
+  intervalsPanel.classList.toggle('hidden', mode !== 'intervals');
+  longSectionPanel.classList.toggle('hidden', mode !== 'longSection');
+
+  startStopBtn.classList.toggle('mode-long', mode === 'longSection');
+
+  resetTimer();
 }
 
+/**
+ * ============================================================================
+ * 6. RENDER LOGIC
+ * ============================================================================
+ */
 function renderTimerUI() {
+  if (timerState.mode === 'intervals') {
+    renderIntervalsUI();
+  } else {
+    renderLongSectionUI();
+  }
+}
+
+function renderIntervalsUI() {
+  timeDisplay.classList.remove('long-format');
+
+  // 1. PREP PHASE
   if (timerState.isPrepPhase) {
     const prepDurationMs = PREP_DURATION_SECONDS * 1000;
     const prepRemainingMs = Math.max(0, prepDurationMs - timerState.prepElapsedMs);
@@ -308,42 +419,78 @@ function renderTimerUI() {
 
     document.body.setAttribute('data-phase', 'prep');
     phaseBadge.textContent = 'GET READY • 3-2-1';
-    sectionTimeDisplay.textContent = String(prepSecondsLeft).padStart(2, '0');
-    totalCycleDisplay.textContent = 'PREP';
-    roundCountDisplay.textContent = timerState.roundCount;
+    timeDisplay.textContent = String(prepSecondsLeft).padStart(2, '0');
+    cycleSubLeft.innerHTML = 'Phase: <strong>PREP</strong>';
+    cycleSubRight.innerHTML = `Round <strong>${timerState.currentRound}</strong>`;
 
     const dashOffset = RING_CIRCUMFERENCE * (1 - prepProgressFraction);
     ringProgress.style.strokeDashoffset = dashOffset.toFixed(2);
     return;
   }
 
+  // 2. REST PERIOD PHASE
+  if (timerState.currentPhase === 'REST') {
+    const restTotalMs = timerState.restDurationSeconds * 1000;
+    const restRemainingMs = Math.max(0, restTotalMs - timerState.elapsedInPhaseMs);
+    const restSecondsLeft = Math.ceil(restRemainingMs / 1000);
+    const restFraction = restRemainingMs / restTotalMs;
+
+    document.body.setAttribute('data-phase', 'restPeriod');
+    phaseBadge.textContent = 'REST PERIOD • RECOVER';
+
+    // Format mm:ss or ss
+    if (restSecondsLeft >= 60) {
+      const m = Math.floor(restSecondsLeft / 60);
+      const s = restSecondsLeft % 60;
+      timeDisplay.textContent = `${m}:${String(s).padStart(2, '0')}`;
+      timeDisplay.classList.add('long-format');
+    } else {
+      timeDisplay.textContent = String(restSecondsLeft).padStart(2, '0');
+      timeDisplay.classList.remove('long-format');
+    }
+
+    cycleSubLeft.innerHTML = `Break: <strong>${timerState.restDurationSeconds}s</strong>`;
+    cycleSubRight.innerHTML = `Next: <strong>Round ${timerState.currentRound + 1}</strong>`;
+
+    // 3-2-1 warning before rest ends
+    if (timerState.isRunning && restSecondsLeft <= 3 && restSecondsLeft >= 1) {
+      const warnKey = `REST-${restSecondsLeft}`;
+      if (timerState.lastWarnSecondFired !== warnKey) {
+        timerState.lastWarnSecondFired = warnKey;
+        beepEngine.playCountdownPip();
+        triggerCountdownDigitsPulse();
+      }
+    }
+
+    const dashOffset = RING_CIRCUMFERENCE * (1 - restFraction);
+    ringProgress.style.strokeDashoffset = dashOffset.toFixed(2);
+    return;
+  }
+
+  // 3. SECTION A OR B
   const secAMs = timerState.sectionASeconds * 1000;
   const secBMs = timerState.sectionBSeconds * 1000;
-  const totalMs = TOTAL_CYCLE_SECONDS * 1000;
+  const inSectionA = timerState.currentPhase === 'A';
 
-  const inSectionA = timerState.elapsedInCycleMs < secAMs;
-  let sectionRemainingMs = 0;
-  let sectionDurationMs = 1;
+  const sectionDurationMs = inSectionA ? secAMs : secBMs;
+  const sectionRemainingMs = Math.max(0, sectionDurationMs - timerState.elapsedInPhaseMs);
+  const secRemainingCeil = Math.max(1, Math.ceil(sectionRemainingMs / 1000));
 
   if (inSectionA) {
-    sectionRemainingMs = secAMs - timerState.elapsedInCycleMs;
-    sectionDurationMs = secAMs;
     document.body.setAttribute('data-phase', 'sectionA');
     phaseBadge.textContent = 'SECTION A • WORK';
   } else {
-    sectionRemainingMs = totalMs - timerState.elapsedInCycleMs;
-    sectionDurationMs = secBMs;
     document.body.setAttribute('data-phase', 'sectionB');
-    phaseBadge.textContent = 'SECTION B • REST';
+    phaseBadge.textContent = 'SECTION B • OFF';
   }
 
-  const secRemainingCeil = Math.min(
-    Math.ceil(sectionDurationMs / 1000),
-    Math.max(1, Math.ceil(sectionRemainingMs / 1000))
-  );
+  timeDisplay.textContent = String(secRemainingCeil).padStart(2, '0');
+  cycleSubLeft.innerHTML = `Loop: <strong>60s</strong>`;
+  cycleSubRight.innerHTML = `Round <strong>${timerState.currentRound}</strong>`;
 
+  // 3-2-1 countdown pip warnings
   if (timerState.isRunning && secRemainingCeil <= 3 && secRemainingCeil >= 1) {
-    const warnKey = `${timerState.roundCount}-${inSectionA ? 'A' : 'B'}-${secRemainingCeil}`;
+    const warnKey = `${timerState.currentRound}-${timerState.currentPhase}-${secRemainingCeil}`;
     if (timerState.lastWarnSecondFired !== warnKey) {
       timerState.lastWarnSecondFired = warnKey;
       beepEngine.playCountdownPip();
@@ -351,23 +498,67 @@ function renderTimerUI() {
     }
   }
 
-  const totalRemainingCeil = Math.max(1, Math.ceil((totalMs - timerState.elapsedInCycleMs) / 1000));
-
-  sectionTimeDisplay.textContent = String(secRemainingCeil).padStart(2, '0');
-  totalCycleDisplay.textContent = `${totalRemainingCeil}s`;
-  roundCountDisplay.textContent = timerState.roundCount;
-
   const progressFraction = Math.max(0, Math.min(1, sectionRemainingMs / sectionDurationMs));
   const dashOffset = RING_CIRCUMFERENCE * (1 - progressFraction);
   ringProgress.style.strokeDashoffset = dashOffset.toFixed(2);
 }
 
+function renderLongSectionUI() {
+  timeDisplay.classList.add('long-format');
+  document.body.setAttribute('data-phase', 'longSection');
+
+  const totalLongMs = timerState.longMinutes * 60 * 1000;
+  const remainingMs = Math.max(0, totalLongMs - timerState.longElapsedMs);
+  const totalSecondsLeft = Math.ceil(remainingMs / 1000);
+
+  const minsLeft = Math.floor(totalSecondsLeft / 60);
+  const secsLeft = totalSecondsLeft % 60;
+
+  phaseBadge.textContent = 'LONG SECTION • ENDURANCE';
+  timeDisplay.textContent = `${String(minsLeft).padStart(2, '0')}:${String(secsLeft).padStart(2, '0')}`;
+  cycleSubLeft.innerHTML = `Total: <strong>${timerState.longMinutes}m</strong>`;
+  cycleSubRight.innerHTML = `Remaining: <strong>${minsLeft}m ${secsLeft}s</strong>`;
+
+  // Final 3-2-1 pips before long section ends
+  if (timerState.isRunning && totalSecondsLeft <= 3 && totalSecondsLeft >= 1) {
+    const warnKey = `LONG-END-${totalSecondsLeft}`;
+    if (timerState.lastWarnSecondFired !== warnKey) {
+      timerState.lastWarnSecondFired = warnKey;
+      beepEngine.playCountdownPip();
+      triggerCountdownDigitsPulse();
+    }
+  }
+
+  const progressFraction = Math.max(0, Math.min(1, remainingMs / totalLongMs));
+  const dashOffset = RING_CIRCUMFERENCE * (1 - progressFraction);
+  ringProgress.style.strokeDashoffset = dashOffset.toFixed(2);
+}
+
+/**
+ * ============================================================================
+ * 7. TIMER ENGINE LOOP
+ * ============================================================================
+ */
 function timerLoop(now) {
   if (!timerState.isRunning) return;
 
   const deltaMs = now - timerState.lastFrameTime;
   timerState.lastFrameTime = now;
 
+  if (timerState.mode === 'intervals') {
+    handleIntervalsTick(deltaMs);
+  } else {
+    handleLongSectionTick(deltaMs);
+  }
+
+  renderTimerUI();
+  if (timerState.isRunning) {
+    timerState.rafId = requestAnimationFrame(timerLoop);
+  }
+}
+
+function handleIntervalsTick(deltaMs) {
+  // 1. PREP TICK
   if (timerState.isPrepPhase) {
     timerState.prepElapsedMs += deltaMs;
     const prepTotalMs = PREP_DURATION_SECONDS * 1000;
@@ -380,64 +571,155 @@ function timerLoop(now) {
         beepEngine.playCountdownPip();
         triggerCountdownDigitsPulse();
       }
-      renderTimerUI();
-      timerState.rafId = requestAnimationFrame(timerLoop);
       return;
     } else {
+      // Transition from PREP to ROUND 1 SECTION A
       const overflowMs = timerState.prepElapsedMs - prepTotalMs;
       timerState.isPrepPhase = false;
       timerState.prepElapsedMs = 0;
-      timerState.elapsedInCycleMs = overflowMs;
       timerState.currentPhase = 'A';
+      timerState.elapsedInPhaseMs = overflowMs;
       timerState.lastWarnSecondFired = null;
 
       beepEngine.playStartBeep();
       triggerVisualFlash();
+      voiceEngine.speak('Work');
+      return;
     }
-  } else {
-    timerState.elapsedInCycleMs += deltaMs;
   }
 
-  const secAMs = timerState.sectionASeconds * 1000;
-  const totalMs = TOTAL_CYCLE_SECONDS * 1000;
+  // 2. REST PERIOD TICK
+  if (timerState.currentPhase === 'REST') {
+    timerState.elapsedInPhaseMs += deltaMs;
+    const restTotalMs = timerState.restDurationSeconds * 1000;
 
-  if (timerState.currentPhase === 'A' && timerState.elapsedInCycleMs >= secAMs && timerState.elapsedInCycleMs < totalMs) {
-    timerState.currentPhase = 'B';
-    timerState.lastWarnSecondFired = null;
-    beepEngine.playTransitionBeep();
-    triggerVisualFlash();
+    if (timerState.elapsedInPhaseMs >= restTotalMs) {
+      // Rest period finished! Advance to next round, Section A
+      const overflowMs = timerState.elapsedInPhaseMs - restTotalMs;
+      timerState.currentRound += 1;
+      timerState.currentPhase = 'A';
+      timerState.elapsedInPhaseMs = overflowMs;
+      timerState.lastWarnSecondFired = null;
+
+      beepEngine.playStartBeep();
+      triggerVisualFlash();
+      voiceEngine.speak(`Round ${timerState.currentRound}. Work`);
+    }
+    return;
   }
 
-  if (timerState.elapsedInCycleMs >= totalMs) {
-    timerState.elapsedInCycleMs = timerState.elapsedInCycleMs % totalMs;
-    timerState.currentPhase = 'A';
-    timerState.roundCount += 1;
-    timerState.lastWarnSecondFired = null;
-    beepEngine.playStartBeep();
-    triggerVisualFlash();
+  // 3. WORK SECTION A TICK
+  if (timerState.currentPhase === 'A') {
+    timerState.elapsedInPhaseMs += deltaMs;
+    const secAMs = timerState.sectionASeconds * 1000;
+
+    if (timerState.elapsedInPhaseMs >= secAMs) {
+      // Switch from Section A to Section B (Off)
+      const overflowMs = timerState.elapsedInPhaseMs - secAMs;
+      timerState.currentPhase = 'B';
+      timerState.elapsedInPhaseMs = overflowMs;
+      timerState.lastWarnSecondFired = null;
+
+      beepEngine.playTransitionBeep();
+      triggerVisualFlash();
+      voiceEngine.speak('Rest');
+    }
+    return;
   }
 
-  renderTimerUI();
-  timerState.rafId = requestAnimationFrame(timerLoop);
+  // 4. OFF SECTION B TICK
+  if (timerState.currentPhase === 'B') {
+    timerState.elapsedInPhaseMs += deltaMs;
+    const secBMs = timerState.sectionBSeconds * 1000;
+
+    if (timerState.elapsedInPhaseMs >= secBMs) {
+      const overflowMs = timerState.elapsedInPhaseMs - secBMs;
+      timerState.lastWarnSecondFired = null;
+
+      // Check if this round triggers a REST PERIOD
+      const restInterval = timerState.restEveryRounds;
+      const shouldTriggerRest = restInterval > 0 && (timerState.currentRound % restInterval === 0);
+
+      if (shouldTriggerRest) {
+        // Switch to extended Rest Period
+        timerState.currentPhase = 'REST';
+        timerState.elapsedInPhaseMs = overflowMs;
+        beepEngine.playRestBeep();
+        triggerVisualFlash();
+        voiceEngine.speak('Rest period. Good job');
+      } else {
+        // Normal next round
+        timerState.currentRound += 1;
+        timerState.currentPhase = 'A';
+        timerState.elapsedInPhaseMs = overflowMs;
+        beepEngine.playStartBeep();
+        triggerVisualFlash();
+        voiceEngine.speak(`Round ${timerState.currentRound}. Work`);
+      }
+    }
+  }
 }
 
+function handleLongSectionTick(deltaMs) {
+  timerState.longElapsedMs += deltaMs;
+  const totalLongMs = timerState.longMinutes * 60 * 1000;
+
+  if (timerState.longElapsedMs >= totalLongMs) {
+    // Finished long section
+    timerState.longElapsedMs = totalLongMs;
+    pauseTimer();
+    beepEngine.playFinishBeep();
+    triggerVisualFlash();
+    voiceEngine.speak('Time is up. Section completed');
+    return;
+  }
+
+  // Check minute voice announcement
+  const remainingSeconds = Math.ceil((totalLongMs - timerState.longElapsedMs) / 1000);
+  // Announce exactly when remainingSeconds is a multiple of 60 (e.g., 540s = 9m, 480s = 8m, etc.)
+  if (remainingSeconds > 0 && remainingSeconds % 60 === 0) {
+    const minsRemaining = remainingSeconds / 60;
+    if (timerState.lastVoiceMinuteAnnounced !== minsRemaining) {
+      timerState.lastVoiceMinuteAnnounced = minsRemaining;
+      const msg = minsRemaining === 1 ? '1 minute remaining' : `${minsRemaining} minutes remaining`;
+      voiceEngine.speak(msg);
+    }
+  }
+}
+
+/**
+ * ============================================================================
+ * 8. START / PAUSE / RESET ACTIONS
+ * ============================================================================
+ */
 function startTimer() {
   beepEngine.unlock();
   requestWakeLock();
 
-  const isFreshStart =
-    timerState.elapsedInCycleMs === 0 &&
-    timerState.roundCount === 1 &&
-    !timerState.isPrepPhase &&
-    timerState.prepElapsedMs === 0;
+  if (timerState.mode === 'intervals') {
+    const isFreshStart =
+      timerState.elapsedInPhaseMs === 0 &&
+      timerState.currentRound === 1 &&
+      !timerState.isPrepPhase &&
+      timerState.prepElapsedMs === 0 &&
+      timerState.currentPhase === 'A';
 
-  if (isFreshStart) {
-    timerState.isPrepPhase = true;
-    timerState.prepElapsedMs = 0;
-    timerState.lastWarnSecondFired = 'PREP-3';
-    beepEngine.playCountdownPip();
-    triggerCountdownDigitsPulse();
-    renderTimerUI();
+    if (isFreshStart) {
+      timerState.isPrepPhase = true;
+      timerState.prepElapsedMs = 0;
+      timerState.lastWarnSecondFired = 'PREP-3';
+      beepEngine.playCountdownPip();
+      triggerCountdownDigitsPulse();
+      voiceEngine.speak('Get ready');
+      renderTimerUI();
+    }
+  } else {
+    // Long Section start
+    if (timerState.longElapsedMs === 0) {
+      beepEngine.playStartBeep();
+      triggerVisualFlash();
+      voiceEngine.speak(`${timerState.longMinutes} minutes countdown started`);
+    }
   }
 
   timerState.isRunning = true;
@@ -446,7 +728,9 @@ function startTimer() {
   startStopBtn.classList.add('running');
   startStopIcon.textContent = '⏸';
   startStopText.textContent = 'Pause Timer';
-  splitCard.classList.add('locked');
+
+  intervalsPanel.classList.add('locked');
+  longSectionPanel.classList.add('locked');
 
   timerState.rafId = requestAnimationFrame(timerLoop);
 }
@@ -463,24 +747,77 @@ function pauseTimer() {
 
 function resetTimer() {
   pauseTimer();
+
+  // Reset Intervals
   timerState.isPrepPhase = false;
   timerState.prepElapsedMs = 0;
-  timerState.elapsedInCycleMs = 0;
+  timerState.elapsedInPhaseMs = 0;
   timerState.currentPhase = 'A';
-  timerState.roundCount = 1;
+  timerState.currentRound = 1;
+
+  // Reset Long Section
+  timerState.longElapsedMs = 0;
+  timerState.lastVoiceMinuteAnnounced = null;
   timerState.lastWarnSecondFired = null;
 
   startStopIcon.textContent = '▶';
   startStopText.textContent = 'Start Timer';
-  splitCard.classList.remove('locked');
-  document.body.setAttribute('data-phase', 'sectionA');
-  phaseBadge.textContent = 'READY • SECTION A';
-  sectionTimeDisplay.classList.remove('countdown-warn');
 
-  updateSplitConfiguration(timerState.sectionASeconds);
-  roundCountDisplay.textContent = '1';
+  intervalsPanel.classList.remove('locked');
+  longSectionPanel.classList.remove('locked');
+
+  timeDisplay.classList.remove('countdown-warn');
+
+  if (timerState.mode === 'intervals') {
+    document.body.setAttribute('data-phase', 'sectionA');
+    phaseBadge.textContent = 'READY • WORK';
+    updateSplitConfiguration(timerState.sectionASeconds);
+  } else {
+    document.body.setAttribute('data-phase', 'longSection');
+    phaseBadge.textContent = 'READY • ENDURANCE';
+    updateLongConfiguration(timerState.longMinutes);
+  }
 }
 
+/**
+ * ============================================================================
+ * 9. EVENT LISTENERS
+ * ============================================================================
+ */
+// Tabs
+tabIntervals.addEventListener('click', () => setMode('intervals'));
+tabLongSection.addEventListener('click', () => setMode('longSection'));
+
+// Intervals Split Slider & Steppers
+splitSlider.addEventListener('input', (e) => updateSplitConfiguration(e.target.value));
+stepMinusBtn.addEventListener('click', () => updateSplitConfiguration(timerState.sectionASeconds - 5));
+stepPlusBtn.addEventListener('click', () => updateSplitConfiguration(timerState.sectionASeconds + 5));
+
+presetChips.forEach(chip => {
+  chip.addEventListener('click', () => updateSplitConfiguration(chip.dataset.split));
+});
+
+// Rest Period Selects
+restEveryRoundsSelect.addEventListener('change', (e) => {
+  timerState.restEveryRounds = parseInt(e.target.value, 10);
+  updateRestSummaryText();
+});
+
+restDurationSelect.addEventListener('change', (e) => {
+  timerState.restDurationSeconds = parseInt(e.target.value, 10);
+  updateRestSummaryText();
+});
+
+// Long Section Slider & Steppers
+longSlider.addEventListener('input', (e) => updateLongConfiguration(e.target.value));
+longMinusBtn.addEventListener('click', () => updateLongConfiguration(timerState.longMinutes - 1));
+longPlusBtn.addEventListener('click', () => updateLongConfiguration(timerState.longMinutes + 1));
+
+longChips.forEach(chip => {
+  chip.addEventListener('click', () => updateLongConfiguration(chip.dataset.mins));
+});
+
+// Action Buttons
 startStopBtn.addEventListener('click', () => {
   if (timerState.isRunning) {
     pauseTimer();
@@ -491,134 +828,32 @@ startStopBtn.addEventListener('click', () => {
 
 resetBtn.addEventListener('click', resetTimer);
 
+// Beep Loudness
 beepGainBtn.addEventListener('click', () => {
   const newLabel = beepEngine.cycleGainMode();
   beepGainLabel.textContent = newLabel;
   beepEngine.playCountdownPip();
 });
 
-duckToggleBtn.addEventListener('click', () => {
-  beepEngine.duckEnabled = !beepEngine.duckEnabled;
-  duckToggleLabel.textContent = beepEngine.duckEnabled ? 'ON' : 'OFF';
-  duckToggleLabel.style.color = beepEngine.duckEnabled ? 'var(--sec-a-primary)' : 'var(--text-muted)';
+// Voice Toggle
+voiceToggleBtn.addEventListener('click', () => {
+  voiceEngine.enabled = !voiceEngine.enabled;
+  voiceToggleLabel.textContent = voiceEngine.enabled ? 'ON' : 'OFF';
+  voiceToggleLabel.style.color = voiceEngine.enabled ? 'var(--sec-a-primary)' : 'var(--text-muted)';
+  if (voiceEngine.enabled) {
+    voiceEngine.speak('Voice enabled');
+  }
 });
 
+// Test Button
 testBeepBtn.addEventListener('click', () => {
   beepEngine.playStartBeep();
   triggerVisualFlash();
+  voiceEngine.speak('Test 1 2 3');
 });
 
-/**
- * ============================================================================
- * 5. DUAL PLAYLIST MP3 CONTROLLER (WORKOUT & COOL DOWN)
- * ============================================================================
- */
-const bgMusicPlayer = document.getElementById('bgMusicPlayer');
-const workoutMusicBtn = document.getElementById('workoutMusicBtn');
-const cooldownMusicBtn = document.getElementById('cooldownMusicBtn');
-const workoutStatusText = document.getElementById('workoutStatusText');
-const cooldownStatusText = document.getElementById('cooldownStatusText');
-const nowPlayingText = document.getElementById('nowPlayingText');
-const trackDot = document.getElementById('trackDot');
-const nextTrackBtn = document.getElementById('nextTrackBtn');
-const musicVolSlider = document.getElementById('musicVolSlider');
-
-const musicState = {
-  activeCategory: null,
-  trackIndex: 0,
-  isPlaying: false
-};
-
-bgMusicPlayer.volume = 0.75;
-
-musicVolSlider.addEventListener('input', (e) => {
-  bgMusicPlayer.volume = parseInt(e.target.value, 10) / 100;
-});
-
-function loadAndPlayTrack(category, index) {
-  const list = PLAYLISTS[category];
-  if (!list || list.length === 0) return;
-
-  musicState.activeCategory = category;
-  musicState.trackIndex = index % list.length;
-  const track = list[musicState.trackIndex];
-
-  bgMusicPlayer.src = track.url;
-  bgMusicPlayer.volume = parseInt(musicVolSlider.value, 10) / 100;
-  const playPromise = bgMusicPlayer.play();
-
-  if (playPromise !== undefined) {
-    playPromise
-      .then(() => {
-        musicState.isPlaying = true;
-        updateMusicUI();
-      })
-      .catch(() => {
-        musicState.isPlaying = false;
-        nowPlayingText.textContent = `Unable to load: ${track.title}`;
-        updateMusicUI();
-      });
-  }
-}
-
-function toggleMusicCategory(category) {
-  beepEngine.unlock();
-
-  if (musicState.activeCategory === category) {
-    if (musicState.isPlaying) {
-      bgMusicPlayer.pause();
-      musicState.isPlaying = false;
-    } else {
-      bgMusicPlayer.play().then(() => {
-        musicState.isPlaying = true;
-        updateMusicUI();
-      }).catch(() => {});
-    }
-    updateMusicUI();
-  } else {
-    loadAndPlayTrack(category, 0);
-  }
-}
-
-function skipToNextTrack() {
-  if (!musicState.activeCategory) return;
-  loadAndPlayTrack(musicState.activeCategory, musicState.trackIndex + 1);
-}
-
-bgMusicPlayer.addEventListener('ended', () => {
-  skipToNextTrack();
-});
-
-function updateMusicUI() {
-  const isWorkout = musicState.activeCategory === 'workout';
-  const isCooldown = musicState.activeCategory === 'cooldown';
-
-  workoutMusicBtn.classList.toggle('active', isWorkout && musicState.isPlaying);
-  cooldownMusicBtn.classList.toggle('active', isCooldown && musicState.isPlaying);
-
-  workoutStatusText.textContent = isWorkout
-    ? (musicState.isPlaying ? 'Playing • Tap to Pause' : 'Paused • Tap to Resume')
-    : 'Tap to play MP3s';
-
-  cooldownStatusText.textContent = isCooldown
-    ? (musicState.isPlaying ? 'Playing • Tap to Pause' : 'Paused • Tap to Resume')
-    : 'Tap to play Relax MP3s';
-
-  trackDot.classList.toggle('playing', musicState.isPlaying);
-  nextTrackBtn.disabled = !musicState.activeCategory;
-
-  if (musicState.activeCategory) {
-    const currentTrack = PLAYLISTS[musicState.activeCategory][musicState.trackIndex];
-    const prefix = musicState.isPlaying ? 'Playing:' : 'Paused:';
-    nowPlayingText.textContent = `${prefix} ${currentTrack.title}`;
-  } else {
-    nowPlayingText.textContent = 'Music Stopped • Select a playlist above';
-  }
-}
-
-workoutMusicBtn.addEventListener('click', () => toggleMusicCategory('workout'));
-cooldownMusicBtn.addEventListener('click', () => toggleMusicCategory('cooldown'));
-nextTrackBtn.addEventListener('click', skipToNextTrack);
-
-// Initialize default 40s / 20s view on load
-updateSplitConfiguration(40);
+// Initialize on Load
+updateSplitConfiguration(45);
+updateRestSummaryText();
+updateLongConfiguration(10);
+setMode('intervals');

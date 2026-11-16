@@ -1,21 +1,21 @@
-# Fitness Counter
+# Fitness Counter & Endurance Timer
 
-A mobile-first HTML5 1-minute split interval fitness timer built for Android Chrome and iOS Safari.
+A mobile-first HTML5 fitness interval timer and endurance countdown built for Android Chrome and iOS Safari.
 
 ## Features
-- **1-Minute Split Configuration:** Divide a 60-second loop into Section A (Work) and Section B (Rest) using the touch slider, +/- steppers, or quick presets (`45/15`, `40/20`, `30/30`, `50/10`).
-- **3-2-1 Get Ready & Transition Cues:** Includes an initial 3-second amber "GET READY" countdown before Round 1, plus 3-2-1 countdown warning pips before every section switch.
-- **High-Output Web Audio Synthesizer:** Dual-oscillator harmonic beeps routed through a `DynamicsCompressorNode` maximizer (`MAX`, `HIGH`, `MED`) designed to cut through smartphone speakers.
-- **Dual Server MP3 Playlists & Auto-Ducking:** Separate controls for **Workout Music** and **Cool Down Music** with automatic background volume ducking when interval beeps fire.
-- **Mobile Safeguards:** Delta-time (`performance.now()`) drift prevention and HTML5 Screen Wake Lock API integration.
 
-## Project Structure
-- `index.html` - Main application layout
-- `style.css` - Mobile-first dark mode styles & animations
-- `app.js` - Timer engine, Web Audio synth, and MP3 playlist controller
-- `audio/workout/` - Place workout `.mp3` files here
-- `audio/cooldown/` - Place cool-down `.mp3` files here
+### 1. 1-Minute Splits with Configurable Rest Periods
+- **Work / Off Splits:** Split each 60-second round into Section A (Work) and Section B (Off) using the interactive slider, `+/-5s` steppers, or quick presets (`45/15`, `40/20`, `30/30`, `50/10`).
+- **Rest Period Between Rounds:** Automatically inserts a dedicated Rest / Recovery phase (e.g. 1 minute, 45s, 30s, 2m) after every selected number of rounds (e.g., after 4 rounds of 45s on / 15s off).
+- **Audio & Haptic Cues:**
+  - Initial 3-second amber "GET READY" countdown.
+  - 3-2-1 warning pips before section transitions and rest periods.
+  - Distinct harmonic start, transition, and rest period beeps.
 
-## Using Your Own MP3 Files
-1. Upload your `.mp3` tracks into `audio/workout/` and `audio/cooldown/`.
-2. Open `app.js` and update the `PLAYLISTS` object at the top of the file with your file paths.
+### 2. Long Section Countdown (1 to 15 Minutes)
+- **Customizable Duration:** Set a sustained workout or cool-down block from 1 to 15 minutes via slider, `+/-1m` steppers, or quick chips (`15m`, `10m`, `5m`, `3m`, `1m`).
+- **Voice Time Announcements:** Uses the browser SpeechSynthesis API to speak vocal notices at every remaining minute mark (e.g., *"4 minutes remaining"*, *"1 minute remaining"*), followed by 3-2-1 warning pips and finish tones.
+
+### 3. High-Output Synthesizer
+- Dual-oscillator Web Audio API synth with dynamic range compressor maximizer (`MAX`, `HIGH`, `MED`) designed to cut through ambient gym noise.
+- Screen Wake Lock API keeps your smartphone screen awake during the workout.
