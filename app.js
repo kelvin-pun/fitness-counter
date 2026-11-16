@@ -619,7 +619,6 @@ function handleIntervalsTick(deltaMs) {
 
       beepEngine.playStartBeep();
       triggerVisualFlash();
-      voiceEngine.speak('Work');
       return;
     }
   }
@@ -639,7 +638,6 @@ function handleIntervalsTick(deltaMs) {
 
       beepEngine.playStartBeep();
       triggerVisualFlash();
-      voiceEngine.speak(`Round ${timerState.currentRound}. Work`);
     }
     return;
   }
@@ -658,7 +656,6 @@ function handleIntervalsTick(deltaMs) {
 
       beepEngine.playTransitionBeep();
       triggerVisualFlash();
-      voiceEngine.speak('Rest');
     }
     return;
   }
@@ -682,7 +679,6 @@ function handleIntervalsTick(deltaMs) {
         timerState.elapsedInPhaseMs = overflowMs;
         beepEngine.playRestBeep();
         triggerVisualFlash();
-        voiceEngine.speak('Rest period. Good job');
       } else {
         // Normal next round
         timerState.currentRound += 1;
@@ -690,7 +686,6 @@ function handleIntervalsTick(deltaMs) {
         timerState.elapsedInPhaseMs = overflowMs;
         beepEngine.playStartBeep();
         triggerVisualFlash();
-        voiceEngine.speak(`Round ${timerState.currentRound}. Work`);
       }
     }
   }
@@ -706,7 +701,6 @@ function handleLongSectionTick(deltaMs) {
     pauseTimer();
     beepEngine.playFinishBeep();
     triggerVisualFlash();
-    voiceEngine.speak('Time is up. Section completed');
     return;
   }
 
@@ -745,7 +739,6 @@ function startTimer() {
       timerState.lastWarnSecondFired = 'PREP-3';
       beepEngine.playCountdownPip();
       triggerCountdownDigitsPulse();
-      voiceEngine.speak('Get ready');
       renderTimerUI();
     }
   } else {
