@@ -99,7 +99,7 @@ html, body {
   color: var(--text-primary);
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
-  padding: 6px 9px;
+  padding: 6px 10px;
   border-radius: 999px;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -373,8 +373,8 @@ input[type="range"]#longSlider {
   background: linear-gradient(
     to right,
     var(--long-primary) 0%,
-    var(--long-primary) var(--long-pct, 64.2%),
-    rgba(255, 255, 255, 0.1) var(--long-pct, 64.2%),
+    var(--long-primary) var(--long-pct, 50%),
+    rgba(255, 255, 255, 0.1) var(--long-pct, 50%),
     rgba(255, 255, 255, 0.1) 100%
   );
 }
@@ -434,8 +434,8 @@ input[type="range"]::-moz-range-thumb {
   color: var(--text-primary);
 }
 
-/* Rest Block Interval Settings */
-.rest-block-config {
+/* Loops & Sets Configuration (1,2,3,4,5 x 4 rounds) */
+.loops-block-config {
   margin-top: 10px;
   padding-top: 9px;
   border-top: 1px solid var(--border-subtle);
@@ -451,49 +451,44 @@ input[type="range"]::-moz-range-thumb {
   gap: 5px;
 }
 
-.rest-settings-grid {
+.loops-chips-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-bottom: 6px;
 }
 
-.setting-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.setting-item label {
-  font-size: 0.68rem;
-  font-weight: 700;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.setting-item select {
-  background: var(--bg-card-elevated);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-primary);
-  font-family: inherit;
-  font-size: 0.78rem;
-  font-weight: 700;
-  padding: 6px 8px;
+.loop-chip {
+  padding: 6px 4px;
   border-radius: 8px;
-  outline: none;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-card-elevated);
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
   cursor: pointer;
+  text-align: center;
+  transition: all 0.15s ease;
 }
 
-.setting-item select:focus {
+.loop-chip:active {
+  transform: scale(0.96);
+}
+
+.loop-chip.active {
+  background: rgba(139, 92, 246, 0.22);
   border-color: var(--rest-primary);
+  color: var(--text-primary);
+  box-shadow: 0 0 10px rgba(139, 92, 246, 0.2);
 }
 
 .rest-summary-text {
   font-size: 0.72rem;
   color: var(--rest-primary);
   font-weight: 700;
-  margin-top: 6px;
-  font-family: 'JetBrains Mono', monospace;
+  margin-top: 4px;
+  line-height: 1.35;
 }
 
 .long-voice-info {

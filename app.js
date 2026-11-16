@@ -2,9 +2,9 @@
  * ============================================================================
  * FITNESS COUNTER & ENDURANCE TIMER
  * Supports:
- * 1. 1-Minute Splits (Work / Off) with Customizable Rest Periods after N Rounds
- * 2. Long Section Countdown (1 to 15 min) with Voice Notice Every Minute
- * 3. High-Output Synthesizer Beeps (MAX / HIGH / MED)
+ * 1. 1-Minute Splits (Work / Off) with 1, 2, 3, 4, 5 x 4 Rounds & 1m Break
+ * 2. Long Section Countdown (1 to 15 min, 8-min default)
+ * 3. High-Output Synthesizer Beeps & Fanfare (MAX / HIGH / MED)
  * ============================================================================
  */
 
@@ -142,89 +142,7 @@ const beepEngine = new BeepAudioEngine();
 
 /**
  * ============================================================================
- * 2. SPEECH SYNTHESIS ENGINE (MALE VOICE • MEASURED SPEED • MINUTES COUNT)
- * ============================================================================
- */
-class VoiceEngine {
-  constructor() {
-    this.enabled = true;
-    this.hasSynthesis = 'speechSynthesis' in window;
-    this.voice = null;
-
-    if (this.hasSynthesis) {
-      this.initVoices();
-      if (window.speechSynthesis.onvoiceschanged !== undefined) {
-        window.speechSynthesis.onvoiceschanged = () => this.initVoices();
-      }
-    }
-  }
-
-  initVoices() {
-    if (!this.hasSynthesis) return;
-    const voices = window.speechSynthesis.getVoices();
-
-    // Prioritize natural male English voices
-    const maleNames = [
-      'Daniel', 'Arthur', 'Oliver', 'George', 'Aaron', 'James',
-      'David', 'Mark', 'Guy', 'Tom', 'Ryan', 'Google UK English Male',
-      'Google US English Male', 'Microsoft David', 'Microsoft Mark'
-    ];
-
-    this.voice = voices.find(v => v.lang.startsWith('en') && maleNames.some(name => v.name.includes(name)))
-      || voices.find(v => v.lang.startsWith('en') && (v.name.toLowerCase().includes('male') || !v.name.toLowerCase().includes('female')))
-      || voices.find(v => v.lang.startsWith('en'))
-      || voices[0] || null;
-  }
-
-  speak(text, options = {}) {
-    if (!this.enabled || !this.hasSynthesis) return;
-    try {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      if (this.voice) utterance.voice = this.voice;
-      // Lower, measured speed (0.86) and deep resonant male pitch (0.88)
-      utterance.rate = options.rate !== undefined ? options.rate : 0.86;
-      utterance.pitch = options.pitch !== undefined ? options.pitch : 0.88;
-      utterance.volume = options.volume !== undefined ? options.volume : 1.0;
-      window.speechSynthesis.speak(utterance);
-    } catch (e) {
-      // Ignore if blocked by browser policy
-    }
-  }
-
-  speakMinuteRemaining(minsRemaining) {
-    const numberWords = {
-      1: 'One',
-      2: 'Two',
-      3: 'Three',
-      4: 'Four,',
-      5: 'Five',
-      6: 'Six',
-      7: 'Seven',
-      8: 'Eight',
-      9: 'Nine',
-      10: 'Ten',
-      11: 'Eleven',
-      12: 'Twelve',
-      13: 'Thirteen',
-      14: 'Fourteen',
-      15: 'Fifteen'
-    };
-
-    const word = numberWords[minsRemaining] || `${minsRemaining}`;
-    const unit = minsRemaining === 1 ? 'minute' : 'minutes';
-    // "Four, minutes remaining." delivers that distinct, measured "Four~ minutes remaining" intonation
-    const phrase = `${word} ${unit} remaining.`;
-
-    this.speak(phrase, { rate: 0.84, pitch: 0.88 });
-  }
-}
-
-const voiceEngine = new VoiceEngine();
-
-/**
- * ============================================================================
- * 3. SCREEN WAKE LOCK
+ * 2. SCREEN WAKE LOCK
  * ============================================================================
  */
 let wakeLockSentinel = null;
@@ -236,7 +154,7 @@ async function requestWakeLock() {
       wakeLockSentinel = await navigator.wakeLock.request('screen');
       wakeLockIndicator.style.background = '#10b981';
     } catch (err) {
-      // Fallback if battery saver blocks
+      // Fallback
     }
   }
 }
@@ -258,12 +176,14 @@ document.addEventListener('visibilitychange', () => {
 
 /**
  * ============================================================================
- * 4. TIMER STATE & DOM ELEMENTS
+ * 3. TIMER STATE & DOM ELEMENTS
  * ============================================================================
  */
 const TOTAL_CYCLE_SECONDS = 60;
 const PREP_DURATION_SECONDS = 3;
 const RING_CIRCUMFERENCE = 2 * Math.PI * 98;
+const ROUNDS_PER_LOOP = 4;
+const BREAK_BETWEEN_LOOPS_SECONDS = 60; // 1 minute break between loops
 
 const timerState = {
   mode: 'intervals', // 'intervals' | 'longSection'
@@ -272,10 +192,10 @@ const timerState = {
   // Intervals settings
   sectionASeconds: 45,
   sectionBSeconds: 15,
-  restEveryRounds: 4,      // 0 = disabled
-  restDurationSeconds: 60, // 60s = 1 min
-  currentRound: 1,
-  currentPhase: 'A',       // 'PREP' | 'A' | 'B' | 'REST'
+  targetLoops: 0, // 0 = continuous, 1..5 = fixed number of 4-round loops
+  currentLoop: 1, // 1..targetLoops
+  currentRoundInLoop: 1, // 1..4
+  currentPhase: 'A', // 'PREP' | 'A' | 'B' | 'REST'
   isPrepPhase: false,
   prepElapsedMs: 0,
   elapsedInPhaseMs: 0,
@@ -283,7 +203,6 @@ const timerState = {
   // Long section settings
   longMinutes: 8,
   longElapsedMs: 0,
-  lastVoiceMinuteAnnounced: null,
 
   // RAF engine
   lastFrameTime: 0,
@@ -314,9 +233,8 @@ const secBLabel = document.getElementById('secBLabel');
 const stepMinusBtn = document.getElementById('stepMinusBtn');
 const stepPlusBtn = document.getElementById('stepPlusBtn');
 const presetChips = document.querySelectorAll('.preset-chip[data-split]');
-const restEveryRoundsSelect = document.getElementById('restEveryRounds');
-const restDurationSelect = document.getElementById('restDuration');
-const restSummaryText = document.getElementById('restSummaryText');
+const loopChips = document.querySelectorAll('.loop-chip');
+const loopSummaryText = document.getElementById('loopSummaryText');
 
 // Long Section controls
 const longSlider = document.getElementById('longSlider');
@@ -335,12 +253,10 @@ const resetBtn = document.getElementById('resetBtn');
 const testBeepBtn = document.getElementById('testBeepBtn');
 const beepGainBtn = document.getElementById('beepGainBtn');
 const beepGainLabel = document.getElementById('beepGainLabel');
-const voiceToggleBtn = document.getElementById('voiceToggleBtn');
-const voiceToggleLabel = document.getElementById('voiceToggleLabel');
 
 /**
  * ============================================================================
- * 5. UI VISUAL HELPERS & SOUNDS
+ * 4. UI VISUAL HELPERS
  * ============================================================================
  */
 function triggerVisualFlash() {
@@ -355,17 +271,16 @@ function triggerCountdownDigitsPulse() {
   timeDisplay.classList.add('countdown-warn');
 }
 
-function updateRestSummaryText() {
-  const rounds = parseInt(restEveryRoundsSelect.value, 10);
-  const durSecs = parseInt(restDurationSelect.value, 10);
-  const durText = durSecs >= 60 ? `${durSecs / 60}m` : `${durSecs}s`;
-
-  if (rounds === 0) {
-    restSummaryText.textContent = 'Continuous rounds (no rest period)';
-    restSummaryText.style.color = 'var(--text-muted)';
+function updateLoopSummaryText() {
+  const loops = timerState.targetLoops;
+  if (loops === 0) {
+    loopSummaryText.textContent = `Continuous: 4 rounds of ${timerState.sectionASeconds}s on / ${timerState.sectionBSeconds}s off with 1m rest between loops`;
+  } else if (loops === 1) {
+    loopSummaryText.textContent = `1 loop: 4 rounds total (4 minutes workout, finishes after round 4)`;
   } else {
-    restSummaryText.textContent = `Rest ${durText} after every ${rounds} rounds`;
-    restSummaryText.style.color = 'var(--rest-primary)';
+    const totalWorkoutRnds = loops * ROUNDS_PER_LOOP;
+    const totalBreaks = loops - 1;
+    loopSummaryText.textContent = `${loops} loops: ${totalWorkoutRnds} rounds total with ${totalBreaks} × 1m rest breaks between loops`;
   }
 }
 
@@ -386,6 +301,8 @@ function updateSplitConfiguration(newSecA) {
   presetChips.forEach(chip => {
     chip.classList.toggle('active', parseInt(chip.dataset.split, 10) === clampedA);
   });
+
+  updateLoopSummaryText();
 
   if (!timerState.isRunning && timerState.mode === 'intervals') {
     timeDisplay.textContent = String(clampedA).padStart(2, '0');
@@ -416,7 +333,7 @@ function updateLongConfiguration(newMins) {
 }
 
 function setMode(mode) {
-  if (timerState.isRunning) return; // locked during active timer
+  if (timerState.isRunning) return;
 
   timerState.mode = mode;
   tabIntervals.classList.toggle('active', mode === 'intervals');
@@ -432,7 +349,7 @@ function setMode(mode) {
 
 /**
  * ============================================================================
- * 6. RENDER LOGIC
+ * 5. RENDER LOGIC
  * ============================================================================
  */
 function renderTimerUI() {
@@ -446,6 +363,10 @@ function renderTimerUI() {
 function renderIntervalsUI() {
   timeDisplay.classList.remove('long-format');
 
+  const loopLabel = timerState.targetLoops > 0
+    ? `Loop ${timerState.currentLoop}/${timerState.targetLoops}`
+    : `Loop ${timerState.currentLoop}`;
+
   // 1. PREP PHASE
   if (timerState.isPrepPhase) {
     const prepDurationMs = PREP_DURATION_SECONDS * 1000;
@@ -456,25 +377,24 @@ function renderIntervalsUI() {
     document.body.setAttribute('data-phase', 'prep');
     phaseBadge.textContent = 'GET READY • 3-2-1';
     timeDisplay.textContent = String(prepSecondsLeft).padStart(2, '0');
-    cycleSubLeft.innerHTML = 'Phase: <strong>PREP</strong>';
-    cycleSubRight.innerHTML = `Round <strong>${timerState.currentRound}</strong>`;
+    cycleSubLeft.innerHTML = `<strong>${loopLabel}</strong>`;
+    cycleSubRight.innerHTML = `Round <strong>${timerState.currentRoundInLoop}/${ROUNDS_PER_LOOP}</strong>`;
 
     const dashOffset = RING_CIRCUMFERENCE * (1 - prepProgressFraction);
     ringProgress.style.strokeDashoffset = dashOffset.toFixed(2);
     return;
   }
 
-  // 2. REST PERIOD PHASE
+  // 2. REST / 1-MINUTE BREAK BETWEEN LOOPS
   if (timerState.currentPhase === 'REST') {
-    const restTotalMs = timerState.restDurationSeconds * 1000;
+    const restTotalMs = BREAK_BETWEEN_LOOPS_SECONDS * 1000;
     const restRemainingMs = Math.max(0, restTotalMs - timerState.elapsedInPhaseMs);
     const restSecondsLeft = Math.ceil(restRemainingMs / 1000);
     const restFraction = restRemainingMs / restTotalMs;
 
     document.body.setAttribute('data-phase', 'restPeriod');
-    phaseBadge.textContent = 'REST PERIOD • RECOVER';
+    phaseBadge.textContent = '1M BREAK • RECOVER';
 
-    // Format mm:ss or ss
     if (restSecondsLeft >= 60) {
       const m = Math.floor(restSecondsLeft / 60);
       const s = restSecondsLeft % 60;
@@ -485,12 +405,14 @@ function renderIntervalsUI() {
       timeDisplay.classList.remove('long-format');
     }
 
-    cycleSubLeft.innerHTML = `Break: <strong>${timerState.restDurationSeconds}s</strong>`;
-    cycleSubRight.innerHTML = `Next: <strong>Round ${timerState.currentRound + 1}</strong>`;
+    cycleSubLeft.innerHTML = `Break: <strong>1m</strong>`;
+    const nextLoopNum = timerState.currentLoop + 1;
+    const nextLoopStr = timerState.targetLoops > 0 ? `Loop ${nextLoopNum}/${timerState.targetLoops}` : `Loop ${nextLoopNum}`;
+    cycleSubRight.innerHTML = `Next: <strong>${nextLoopStr}</strong>`;
 
-    // 3-2-1 warning before rest ends
+    // 3-2-1 pips before break finishes
     if (timerState.isRunning && restSecondsLeft <= 3 && restSecondsLeft >= 1) {
-      const warnKey = `REST-${restSecondsLeft}`;
+      const warnKey = `BREAK-${restSecondsLeft}`;
       if (timerState.lastWarnSecondFired !== warnKey) {
         timerState.lastWarnSecondFired = warnKey;
         beepEngine.playCountdownPip();
@@ -503,7 +425,7 @@ function renderIntervalsUI() {
     return;
   }
 
-  // 3. SECTION A OR B
+  // 3. WORK SECTION A OR SECTION B (OFF)
   const secAMs = timerState.sectionASeconds * 1000;
   const secBMs = timerState.sectionBSeconds * 1000;
   const inSectionA = timerState.currentPhase === 'A';
@@ -521,12 +443,12 @@ function renderIntervalsUI() {
   }
 
   timeDisplay.textContent = String(secRemainingCeil).padStart(2, '0');
-  cycleSubLeft.innerHTML = `Loop: <strong>60s</strong>`;
-  cycleSubRight.innerHTML = `Round <strong>${timerState.currentRound}</strong>`;
+  cycleSubLeft.innerHTML = `<strong>${loopLabel}</strong>`;
+  cycleSubRight.innerHTML = `Round <strong>${timerState.currentRoundInLoop}/${ROUNDS_PER_LOOP}</strong>`;
 
   // 3-2-1 countdown pip warnings
   if (timerState.isRunning && secRemainingCeil <= 3 && secRemainingCeil >= 1) {
-    const warnKey = `${timerState.currentRound}-${timerState.currentPhase}-${secRemainingCeil}`;
+    const warnKey = `L${timerState.currentLoop}-R${timerState.currentRoundInLoop}-${timerState.currentPhase}-${secRemainingCeil}`;
     if (timerState.lastWarnSecondFired !== warnKey) {
       timerState.lastWarnSecondFired = warnKey;
       beepEngine.playCountdownPip();
@@ -572,7 +494,7 @@ function renderLongSectionUI() {
 
 /**
  * ============================================================================
- * 7. TIMER ENGINE LOOP
+ * 6. TIMER ENGINE LOOP
  * ============================================================================
  */
 function timerLoop(now) {
@@ -609,7 +531,7 @@ function handleIntervalsTick(deltaMs) {
       }
       return;
     } else {
-      // Transition from PREP to ROUND 1 SECTION A
+      // Transition from PREP to LOOP 1 ROUND 1 SECTION A
       const overflowMs = timerState.prepElapsedMs - prepTotalMs;
       timerState.isPrepPhase = false;
       timerState.prepElapsedMs = 0;
@@ -623,15 +545,16 @@ function handleIntervalsTick(deltaMs) {
     }
   }
 
-  // 2. REST PERIOD TICK
+  // 2. 1-MINUTE BREAK BETWEEN 4-ROUND LOOPS
   if (timerState.currentPhase === 'REST') {
     timerState.elapsedInPhaseMs += deltaMs;
-    const restTotalMs = timerState.restDurationSeconds * 1000;
+    const restTotalMs = BREAK_BETWEEN_LOOPS_SECONDS * 1000;
 
     if (timerState.elapsedInPhaseMs >= restTotalMs) {
-      // Rest period finished! Advance to next round, Section A
+      // Break is complete! Start next loop round 1
       const overflowMs = timerState.elapsedInPhaseMs - restTotalMs;
-      timerState.currentRound += 1;
+      timerState.currentLoop += 1;
+      timerState.currentRoundInLoop = 1;
       timerState.currentPhase = 'A';
       timerState.elapsedInPhaseMs = overflowMs;
       timerState.lastWarnSecondFired = null;
@@ -648,7 +571,6 @@ function handleIntervalsTick(deltaMs) {
     const secAMs = timerState.sectionASeconds * 1000;
 
     if (timerState.elapsedInPhaseMs >= secAMs) {
-      // Switch from Section A to Section B (Off)
       const overflowMs = timerState.elapsedInPhaseMs - secAMs;
       timerState.currentPhase = 'B';
       timerState.elapsedInPhaseMs = overflowMs;
@@ -669,22 +591,30 @@ function handleIntervalsTick(deltaMs) {
       const overflowMs = timerState.elapsedInPhaseMs - secBMs;
       timerState.lastWarnSecondFired = null;
 
-      // Check if this round triggers a REST PERIOD
-      const restInterval = timerState.restEveryRounds;
-      const shouldTriggerRest = restInterval > 0 && (timerState.currentRound % restInterval === 0);
-
-      if (shouldTriggerRest) {
-        // Switch to extended Rest Period
-        timerState.currentPhase = 'REST';
-        timerState.elapsedInPhaseMs = overflowMs;
-        beepEngine.playRestBeep();
-        triggerVisualFlash();
-      } else {
-        // Normal next round
-        timerState.currentRound += 1;
+      // Finished round in loop
+      if (timerState.currentRoundInLoop < ROUNDS_PER_LOOP) {
+        // Next round within the same 4-round loop
+        timerState.currentRoundInLoop += 1;
         timerState.currentPhase = 'A';
         timerState.elapsedInPhaseMs = overflowMs;
+
         beepEngine.playStartBeep();
+        triggerVisualFlash();
+      } else {
+        // Finished all 4 rounds of this loop!
+        // Check if workout is completely finished (reached targetLoops)
+        if (timerState.targetLoops > 0 && timerState.currentLoop >= timerState.targetLoops) {
+          pauseTimer();
+          beepEngine.playFinishBeep();
+          triggerVisualFlash();
+          return;
+        }
+
+        // Otherwise, enter 1-minute break between loops
+        timerState.currentPhase = 'REST';
+        timerState.elapsedInPhaseMs = overflowMs;
+
+        beepEngine.playRestBeep();
         triggerVisualFlash();
       }
     }
@@ -696,29 +626,16 @@ function handleLongSectionTick(deltaMs) {
   const totalLongMs = timerState.longMinutes * 60 * 1000;
 
   if (timerState.longElapsedMs >= totalLongMs) {
-    // Finished long section
     timerState.longElapsedMs = totalLongMs;
     pauseTimer();
     beepEngine.playFinishBeep();
     triggerVisualFlash();
-    return;
-  }
-
-  // Check minute voice announcement
-  const remainingSeconds = Math.ceil((totalLongMs - timerState.longElapsedMs) / 1000);
-  // Announce exactly when remainingSeconds is a multiple of 60 (e.g., 420s = 7m, 360s = 6m, etc.)
-  if (remainingSeconds > 0 && remainingSeconds % 60 === 0) {
-    const minsRemaining = remainingSeconds / 60;
-    if (timerState.lastVoiceMinuteAnnounced !== minsRemaining) {
-      timerState.lastVoiceMinuteAnnounced = minsRemaining;
-      voiceEngine.speakMinuteRemaining(minsRemaining);
-    }
   }
 }
 
 /**
  * ============================================================================
- * 8. START / PAUSE / RESET ACTIONS
+ * 7. START / PAUSE / RESET ACTIONS
  * ============================================================================
  */
 function startTimer() {
@@ -728,7 +645,8 @@ function startTimer() {
   if (timerState.mode === 'intervals') {
     const isFreshStart =
       timerState.elapsedInPhaseMs === 0 &&
-      timerState.currentRound === 1 &&
+      timerState.currentLoop === 1 &&
+      timerState.currentRoundInLoop === 1 &&
       !timerState.isPrepPhase &&
       timerState.prepElapsedMs === 0 &&
       timerState.currentPhase === 'A';
@@ -742,11 +660,9 @@ function startTimer() {
       renderTimerUI();
     }
   } else {
-    // Long Section start
     if (timerState.longElapsedMs === 0) {
       beepEngine.playStartBeep();
       triggerVisualFlash();
-      voiceEngine.speak(`${timerState.longMinutes} minutes remaining.`);
     }
   }
 
@@ -781,11 +697,11 @@ function resetTimer() {
   timerState.prepElapsedMs = 0;
   timerState.elapsedInPhaseMs = 0;
   timerState.currentPhase = 'A';
-  timerState.currentRound = 1;
+  timerState.currentLoop = 1;
+  timerState.currentRoundInLoop = 1;
 
   // Reset Long Section
   timerState.longElapsedMs = 0;
-  timerState.lastVoiceMinuteAnnounced = null;
   timerState.lastWarnSecondFired = null;
 
   startStopIcon.textContent = '▶';
@@ -809,7 +725,7 @@ function resetTimer() {
 
 /**
  * ============================================================================
- * 9. EVENT LISTENERS
+ * 8. EVENT LISTENERS
  * ============================================================================
  */
 // Tabs
@@ -825,15 +741,16 @@ presetChips.forEach(chip => {
   chip.addEventListener('click', () => updateSplitConfiguration(chip.dataset.split));
 });
 
-// Rest Period Selects
-restEveryRoundsSelect.addEventListener('change', (e) => {
-  timerState.restEveryRounds = parseInt(e.target.value, 10);
-  updateRestSummaryText();
-});
-
-restDurationSelect.addEventListener('change', (e) => {
-  timerState.restDurationSeconds = parseInt(e.target.value, 10);
-  updateRestSummaryText();
+// Loops Chips: 1, 2, 3, 4, 5 x 4 rounds, or Continuous
+loopChips.forEach(chip => {
+  chip.addEventListener('click', () => {
+    if (timerState.isRunning) return;
+    loopChips.forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    timerState.targetLoops = parseInt(chip.dataset.loops, 10);
+    updateLoopSummaryText();
+    renderTimerUI();
+  });
 });
 
 // Long Section Slider & Steppers
@@ -863,25 +780,13 @@ beepGainBtn.addEventListener('click', () => {
   beepEngine.playCountdownPip();
 });
 
-// Voice Toggle
-voiceToggleBtn.addEventListener('click', () => {
-  voiceEngine.enabled = !voiceEngine.enabled;
-  voiceToggleLabel.textContent = voiceEngine.enabled ? 'ON' : 'OFF';
-  voiceToggleLabel.style.color = voiceEngine.enabled ? 'var(--sec-a-primary)' : 'var(--text-muted)';
-  if (voiceEngine.enabled) {
-    voiceEngine.speak('Voice enabled');
-  }
-});
-
 // Test Button
 testBeepBtn.addEventListener('click', () => {
   beepEngine.playStartBeep();
   triggerVisualFlash();
-  voiceEngine.speakMinuteRemaining(4);
 });
 
 // Initialize on Load
 updateSplitConfiguration(45);
-updateRestSummaryText();
 updateLongConfiguration(8);
 setMode('intervals');

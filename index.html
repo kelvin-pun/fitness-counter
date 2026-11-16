@@ -23,14 +23,10 @@
       </div>
       <div class="top-controls">
         <button type="button" class="sound-pill" id="beepGainBtn" title="Cycle Beep Loudness">
-          <span>🔊</span>
+          <span>🔊 Beep:</span>
           <span class="gain-val" id="beepGainLabel">MAX</span>
         </button>
-        <button type="button" class="sound-pill" id="voiceToggleBtn" title="Toggle Voice Announcements">
-          <span>🗣️ Voice:</span>
-          <span class="gain-val" id="voiceToggleLabel">ON</span>
-        </button>
-        <button type="button" class="sound-pill" id="testBeepBtn" aria-label="Test Sound & Voice">
+        <button type="button" class="sound-pill" id="testBeepBtn" aria-label="Test Interval Beeps">
           <span>🔔 Test</span>
         </button>
       </div>
@@ -39,7 +35,7 @@
     <!-- 2. MODE SWITCHER (INTERVALS vs LONG SECTION) -->
     <nav class="mode-tabs" aria-label="Workout Mode Selection">
       <button type="button" class="mode-tab active" id="tabIntervals" data-mode="intervals">
-        <span>⏱️ Rounds & Splits</span>
+        <span>⏱️ Rounds & Sets</span>
       </button>
       <button type="button" class="mode-tab" id="tabLongSection" data-mode="longSection">
         <span>⏳ Long Section</span>
@@ -55,11 +51,11 @@
         </svg>
         <div class="timer-readout">
           <span class="phase-badge" id="phaseBadge">READY • WORK</span>
-          <div class="digits-main" id="timeDisplay">40</div>
+          <div class="digits-main" id="timeDisplay">45</div>
           <div class="cycle-sub" id="cycleSubDisplay">
             <span id="cycleSubLeft">Loop: <strong>60s</strong></span>
             <span>•</span>
-            <span id="cycleSubRight">Round <strong id="roundCountDisplay">1</strong></span>
+            <span id="cycleSubRight">Round <strong id="roundCountDisplay">1/4</strong></span>
           </div>
         </div>
       </div>
@@ -96,39 +92,21 @@
         <button type="button" class="preset-chip" data-split="50">50s / 10s</button>
       </div>
 
-      <!-- Rest Block Interval Configurator -->
-      <div class="rest-block-config">
+      <!-- Loops & Sets Selector: 1, 2, 3, 4, 5 x 4 Rounds -->
+      <div class="loops-block-config">
         <div class="config-row-title">
-          <span>🛑 Rest Interval Between Rounds</span>
+          <span>🔁 Workout Sets & Breaks (1m break between loops)</span>
         </div>
-        <div class="rest-settings-grid">
-          <div class="setting-item">
-            <label for="restEveryRounds">Every</label>
-            <select id="restEveryRounds" aria-label="Select rounds before rest period">
-              <option value="0">Off (No rest)</option>
-              <option value="2">2 Rounds</option>
-              <option value="3">3 Rounds</option>
-              <option value="4" selected>4 Rounds</option>
-              <option value="5">5 Rounds</option>
-              <option value="6">6 Rounds</option>
-              <option value="8">8 Rounds</option>
-              <option value="10">10 Rounds</option>
-            </select>
-          </div>
-          <div class="setting-item">
-            <label for="restDuration">Rest Duration</label>
-            <select id="restDuration" aria-label="Select rest duration">
-              <option value="30">30 Seconds</option>
-              <option value="45">45 Seconds</option>
-              <option value="60" selected>1 Minute</option>
-              <option value="90">1.5 Minutes</option>
-              <option value="120">2 Minutes</option>
-              <option value="180">3 Minutes</option>
-            </select>
-          </div>
+        <div class="loops-chips-row" id="loopsChipsRow">
+          <button type="button" class="loop-chip" data-loops="1">1 × 4 rnds</button>
+          <button type="button" class="loop-chip" data-loops="2">2 × 4 rnds</button>
+          <button type="button" class="loop-chip" data-loops="3">3 × 4 rnds</button>
+          <button type="button" class="loop-chip" data-loops="4">4 × 4 rnds</button>
+          <button type="button" class="loop-chip" data-loops="5">5 × 4 rnds</button>
+          <button type="button" class="loop-chip active" data-loops="0">Continuous</button>
         </div>
-        <div class="rest-summary-text" id="restSummaryText">
-          Rest 1m after every 4 rounds
+        <div class="rest-summary-text" id="loopSummaryText">
+          Continuous: 4 rounds of 45s on / 15s off with 1m rest between loops
         </div>
       </div>
     </section>
@@ -140,8 +118,8 @@
           <span class="label">Long Section Duration</span>
           <span class="val" id="longDurationLabel">8m 00s</span>
         </div>
-        <div class="voice-badge" id="voiceNoticeBadge">
-          <span>🗣️ Male Voice • Measured Countdown</span>
+        <div class="voice-badge">
+          <span>🔔 Beep & Finish Fanfare</span>
         </div>
       </div>
 
@@ -165,7 +143,7 @@
       </div>
 
       <div class="long-voice-info">
-        <span>📢 Voice notice: clear, measured male voice announcement at each remaining minute mark (e.g. "Four~ minutes remaining").</span>
+        <span>Pure interval chimes: 3-2-1 countdown pips before completion followed by finish fanfare.</span>
       </div>
     </section>
 
